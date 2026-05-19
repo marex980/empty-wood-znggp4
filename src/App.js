@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 const NOTES = [
   { id: 1, name: 'LA', position: 0, freq: 220.00 },   // 5. linija
   { id: 2, name: 'SOL', position: 1, freq: 196.00 },  // 4. praznina
-  { id: 3, name: 'FA', position: 2, freq: 174.61 },   // 4. linija (Orijentir)
+  { id: 3, name: 'FA', position: 2, freq: 174.61 },   // 4. linija (Orijentir - na tačno 70px)
   { id: 4, name: 'MI', position: 3, freq: 164.81 },   // 3. praznina
   { id: 5, name: 'RE', position: 4, freq: 146.83 },   // 3. linija
   { id: 6, name: 'DO', position: 5, freq: 130.81 },   // 2. praznina (Orijentir)
@@ -82,13 +82,6 @@ export default function BasKljucKviz() {
             display: flex; flex-direction: column; justify-content: space-between;
             padding: 40px 0; box-sizing: border-box; overflow: hidden;
           }
-          /* Nova pravila za simbol ključa - fiksiran direktno za F liniju (top: 70px) */
-          .clef-symbol {
-            position: absolute; left: 5px; top: 70px;
-            font-size: 75px; font-family: "Arial", sans-serif;
-            color: #333; line-height: 0; pointer-events: none;
-            display: flex; align-items: center; justify-content: center;
-          }
           .mode-btn {
             padding: 10px 15px; font-size: 14px; font-weight: bold;
             cursor: pointer; border: none; border-radius: 8px; flex: 1;
@@ -106,7 +99,6 @@ export default function BasKljucKviz() {
           }
           @media (min-width: 600px) {
             .app-container { padding: 30px; margin: 40px auto; }
-            .clef-symbol { font-size: 90px; left: 15px; }
             .mode-btn { padding: 10px 20px; font-size: 16px; }
             .ans-btn { flex: none; padding: 15px 25px; font-size: 20px; }
             .note-label { font-size: 14px; }
@@ -129,17 +121,28 @@ export default function BasKljucKviz() {
         {mode === 'quiz' && <p style={{ fontSize: '16px', margin: '10px 0' }}>Poeni: <strong style={{ color: '#007BFF', fontSize: '22px' }}>{score}</strong></p>}
 
         <div className="staff-box">
+          {/* Crtanje 5 linija */}
           {[...Array(5)].map((_, i) => (
             <div key={i} style={{ width: '100%', height: '2px', backgroundColor: '#333' }}></div>
           ))}
 
-          {/* Oznaka za bas ključ sada ima sopstvenu css klasu iznad */}
-          <div className="clef-symbol">𝄢</div>
+          {/* NOVI BAS KLJUČ: Pouzdana slika, zakucana na tvoju Fa liniju (top: 70px) */}
+          <img 
+            src="https://upload.wikimedia.org/wikipedia/commons/e/ee/Bass_clef.svg" 
+            alt="Bas ključ"
+            style={{
+              position: 'absolute',
+              left: '10px',
+              top: '70px', 
+              height: '80px',
+              transform: 'translateY(-27%)', // Fino podešavanje da linija seče tačkice
+              pointerEvents: 'none'
+            }}
+          />
 
           {/* MOD ZA UČENJE */}
           {mode === 'learn' && NOTES.map((note, index) => {
-            // Skalirano od 22% do 85% širine kako ne bi ispalo sa desne strane ekrana
-            const leftPosition = 22 + (index * (63 / (NOTES.length - 1))); 
+            const leftPosition = 25 + (index * (65 / (NOTES.length - 1))); 
             return (
               <div key={note.id} onClick={() => playTone(note.freq)}
                    style={{
