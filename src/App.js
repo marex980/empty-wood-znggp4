@@ -87,7 +87,7 @@ export default function BasKljucKviz() {
           }
           /* KLJUČ KORISTI NOTO MUSIC FONT */
           .clef-symbol {
-            position: absolute; left: 10px; top: 70px;
+            position: absolute; left: 10px; top: 80px;
             font-family: 'Noto Music', sans-serif;
             font-size: 85px; color: #333;
             line-height: 0; pointer-events: none;
