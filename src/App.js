@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 
-// Frekvencije nota
 const NOTES = [
   { id: 1, name: 'LA', position: 0, freq: 220.00 },   // 5. linija
   { id: 2, name: 'SOL', position: 1, freq: 196.00 },  // 4. praznina
@@ -68,7 +67,6 @@ export default function BasKljucKviz() {
 
   return (
     <>
-      {/* Responzivni CSS koji rešava probleme na mobilnom telefonu */}
       <style>
         {`
           .app-container {
@@ -84,10 +82,12 @@ export default function BasKljucKviz() {
             display: flex; flex-direction: column; justify-content: space-between;
             padding: 40px 0; box-sizing: border-box; overflow: hidden;
           }
+          /* Nova pravila za simbol ključa - fiksiran direktno za F liniju (top: 70px) */
           .clef-symbol {
-            position: absolute; left: 5px; top: 25px;
-            font-size: 85px; font-family: "Times New Roman", Times, serif;
-            color: #333; line-height: 1; pointer-events: none;
+            position: absolute; left: 5px; top: 70px;
+            font-size: 75px; font-family: "Arial", sans-serif;
+            color: #333; line-height: 0; pointer-events: none;
+            display: flex; align-items: center; justify-content: center;
           }
           .mode-btn {
             padding: 10px 15px; font-size: 14px; font-weight: bold;
@@ -102,11 +102,11 @@ export default function BasKljucKviz() {
           .note-label {
             position: absolute; top: 25px; left: 50%;
             transform: translateX(-50%) rotate(15deg);
-            font-size: 12px; font-weight: bold; color: #FF9800;
+            font-size: 11px; font-weight: bold; color: #FF9800;
           }
           @media (min-width: 600px) {
             .app-container { padding: 30px; margin: 40px auto; }
-            .clef-symbol { font-size: 95px; left: 15px; }
+            .clef-symbol { font-size: 90px; left: 15px; }
             .mode-btn { padding: 10px 20px; font-size: 16px; }
             .ans-btn { flex: none; padding: 15px 25px; font-size: 20px; }
             .note-label { font-size: 14px; }
@@ -133,11 +133,13 @@ export default function BasKljucKviz() {
             <div key={i} style={{ width: '100%', height: '2px', backgroundColor: '#333' }}></div>
           ))}
 
+          {/* Oznaka za bas ključ sada ima sopstvenu css klasu iznad */}
           <div className="clef-symbol">𝄢</div>
 
           {/* MOD ZA UČENJE */}
           {mode === 'learn' && NOTES.map((note, index) => {
-            const leftPosition = 22 + (index * 9.5); // Počinje tek od 22% širine ekrana da ne preklapa ključ
+            // Skalirano od 22% do 85% širine kako ne bi ispalo sa desne strane ekrana
+            const leftPosition = 22 + (index * (63 / (NOTES.length - 1))); 
             return (
               <div key={note.id} onClick={() => playTone(note.freq)}
                    style={{
