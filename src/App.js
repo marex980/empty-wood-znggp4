@@ -237,7 +237,7 @@ export default function ClefApp() {
       
       // Cleanup prethodnog timeouta ako korisnik brzo klikće
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => pickRandomNote(), 1000);
+      timeoutRef.current = setTimeout(() => pickRandomNote(), 300);
     } else {
       setFeedback({ show: true, isCorrect: false, text: `To nije ${guessName}. Pokušaj ponovo!` });
     }
