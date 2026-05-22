@@ -15,14 +15,14 @@ const BASS_NOTES = [
 ];
 
 const TREBLE_NOTES = [
-  { id: 10, name: 'DO', position: 3, freq: 523.25 }, // Gornje DO
+  { id: 10, name: 'DO', position: 3, freq: 523.25 },
   { id: 11, name: 'SI', position: 4, freq: 493.88 },
   { id: 12, name: 'LA', position: 5, freq: 440.00 },
   { id: 13, name: 'SOL', position: 6, freq: 392.00 },
   { id: 14, name: 'FA', position: 7, freq: 349.23 },
-  { id: 15, name: 'MI', position: 8, freq: 329.63 }, // 1. linija
-  { id: 16, name: 'RE', position: 9, freq: 293.66 }, // Praznina ispod 1. linije
-  { id: 17, name: 'DO', position: 10, freq: 261.63, ledger: true } // Donje DO (Prva pomoćna linija)
+  { id: 15, name: 'MI', position: 8, freq: 329.63 },
+  { id: 16, name: 'RE', position: 9, freq: 293.66 },
+  { id: 17, name: 'DO', position: 10, freq: 261.63, ledger: true }
 ];
 
 const SOLFEGIO = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
@@ -53,7 +53,6 @@ const MELODIES = {
 
 const LEARN_SCALE_RAW = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
 
-// Helper funkcija za građenje niza nota iz sirovih stringova
 const buildMelody = (symbols, activeNotesDb) => {
   let left = 40;
   let noteIndex = 0;
@@ -65,10 +64,7 @@ const buildMelody = (symbols, activeNotesDb) => {
     } else if (sym === '||') {
       elements.push({ id: index, type: 'doublebar', left: left });
     } else {
-      // Za učenje nam treba redom DO, RE, MI... Ali Treble i Bass imaju te note na drugim pozicijama!
-      // Tražimo prvu notu koja odgovara imenu iz aktivne baze ključa (odozdo na gore)
       const noteObjs = activeNotesDb.filter(n => n.name === sym);
-      // Uzimamo najnižu notu iz opsega (sa najvećom pozicijom) za skalu
       const noteObj = noteObjs.reduce((prev, curr) => (prev.position > curr.position) ? prev : curr, noteObjs[0]);
       
       if (noteObj) {
@@ -90,7 +86,6 @@ const buildMelody = (symbols, activeNotesDb) => {
 
 const HeaderButtons = ({ clef, setClef, mode, setMode, resetQuiz }) => (
   <div style={{ marginBottom: '20px' }}>
-    {/* Izbor Ključa */}
     <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
       <button onClick={() => { setClef('treble'); resetQuiz(); }} style={{ padding: '8px 15px', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: clef === 'treble' ? '#673AB7' : '#e0e0e0', color: clef === 'treble' ? '#fff' : '#333' }}>
         𝄞 Violinski
@@ -100,7 +95,6 @@ const HeaderButtons = ({ clef, setClef, mode, setMode, resetQuiz }) => (
       </button>
     </div>
     
-    {/* Izbor Moda */}
     <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
       <button onClick={() => setMode('learn')} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'learn' ? '#FF9800' : '#ddd', color: mode === 'learn' ? 'white' : '#333' }}>📖 Učenje</button>
       <button onClick={() => { setMode('quiz'); resetQuiz(); }} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'quiz' ? '#007BFF' : '#ddd', color: mode === 'quiz' ? 'white' : '#333' }}>🎯 Kviz</button>
@@ -117,7 +111,6 @@ const Staff = ({ clef, mode, width, children }) => (
         {clef === 'treble' ? '𝄞 Violinski Ključ' : '𝄢 Bas Ključ (F)'}
       </div>
 
-      {/* 5 Linija */}
       {[...Array(5)].map((_, i) => <div key={i} style={{ width: '100%', height: '2px', backgroundColor: '#333' }}></div>)}
       
       {children}
@@ -127,21 +120,19 @@ const Staff = ({ clef, mode, width, children }) => (
 
 const Note = ({ left, top, name, showLabel, ledger, onClick }) => (
   <div onClick={onClick} style={{ position: 'absolute', left: `${left}px`, top: `${top}px`, width: '20px', height: '16px', backgroundColor: '#111', borderRadius: '50%', transform: 'translateX(-50%) rotate(-15deg)', cursor: 'pointer' }}>
-    {/* Pomoćna linija (Ledger line) za note van sistema poput donjeg DO */}
     {ledger && <div style={{ position: 'absolute', top: '50%', left: '-30%', width: '160%', height: '2px', backgroundColor: '#111', transform: 'translateY(-50%)' }}></div>}
     {showLabel && <div style={{ position: 'absolute', top: '22px', left: '50%', transform: 'translateX(-50%) rotate(15deg)', fontSize: '12px', fontWeight: 'bold', color: '#E53935' }}>{name}</div>}
   </div>
 );
 
 // ==========================================
-// 3. GLAVNA KOMPONENTA (App / Logic)
+// 3. GLAVNA KOMPONENTA
 // ==========================================
 
 export default function ClefApp() {
-  const [clef, setClef] = useState('bass'); // 'bass' ili 'treble'
+  const [clef, setClef] = useState('bass'); 
   const [mode, setMode] = useState('learn');
   
-  // Quiz
   const [currentNote, setCurrentNote] = useState(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -149,7 +140,6 @@ export default function ClefApp() {
   const [timer, setTimer] = useState(0);
   const [quizActive, setQuizActive] = useState(false);
 
-  // Melody
   const [activeMelodyType, setActiveMelodyType] = useState('2/4');
   const [activeMelodyData, setActiveMelodyData] = useState(() => buildMelody(MELODIES.bass['2/4'][0], BASS_NOTES));
   const [metronomeOn, setMetronomeOn] = useState(false);
@@ -186,10 +176,15 @@ export default function ClefApp() {
     osc.stop(ctx.currentTime + 0.1);
   };
 
+  // DODATO: Funkcija za izbor nove note koja ujedno gasi zelenu boju i sklanja tekst
+  const pickRandomNote = () => {
+    setCurrentNote(activeNotesDb[Math.floor(Math.random() * activeNotesDb.length)]);
+    setFeedback({ show: false, isCorrect: false, text: '' });
+  };
+
   const resetQuiz = () => {
     setCorrectCount(0); setTotalCount(0); setTimer(0); setQuizActive(false);
-    setFeedback({ show: false, isCorrect: false, text: '' });
-    setCurrentNote(activeNotesDb[Math.floor(Math.random() * activeNotesDb.length)]);
+    pickRandomNote();
   };
 
   useEffect(() => {
@@ -200,7 +195,7 @@ export default function ClefApp() {
 
   useEffect(() => {
     if (mode === 'quiz') resetQuiz();
-  }, [mode, clef]); // Resetuj i promeni notu kad se promeni ključ!
+  }, [mode, clef]); 
 
   const handleGuess = (guessName) => {
     if (!quizActive) setQuizActive(true);
@@ -210,9 +205,10 @@ export default function ClefApp() {
       setCorrectCount(prev => prev + 1);
       setFeedback({ show: true, isCorrect: true, text: 'Bravo! 🎉' });
       playTone(currentNote.freq);
-      setTimeout(() => setCurrentNote(activeNotesDb[Math.floor(Math.random() * activeNotesDb.length)]), 1000);
+      // DODATO: Pozivamo funkciju umesto direktnog menjanja note
+      setTimeout(() => pickRandomNote(), 1000);
     } else {
-      setFeedback({ show: true, isCorrect: false, text: `To nije ${guessName}.` });
+      setFeedback({ show: true, isCorrect: false, text: `To nije ${guessName}. Pokušaj ponovo!` });
     }
   };
 
@@ -222,7 +218,6 @@ export default function ClefApp() {
   };
 
   useEffect(() => {
-    // Ako se promeni ključ dok smo u melodijama, resetuj melodiju na novu
     setActiveMelodyData(buildMelody(MELODIES[clef][activeMelodyType][0], activeNotesDb));
     setMetronomeOn(false);
   }, [clef]);
@@ -253,7 +248,6 @@ export default function ClefApp() {
       
       <HeaderButtons clef={clef} setClef={setClef} mode={mode} setMode={setMode} resetQuiz={resetQuiz} />
 
-      {/* Skok / Tajmer Kontrole */}
       {mode === 'quiz' && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '15px 0' }}>
           <div style={{ fontSize: '18px' }}>Skor: <strong style={{ color: '#007BFF' }}>{correctCount}/{totalCount}</strong></div>
@@ -261,7 +255,6 @@ export default function ClefApp() {
         </div>
       )}
 
-      {/* Melodija Kontrole */}
       {mode === 'melody' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', margin: '10px 0' }}>
           <div style={{ display: 'flex', gap: '10px' }}>
@@ -275,22 +268,18 @@ export default function ClefApp() {
         </div>
       )}
 
-      {/* NOTNI SISTEM */}
       <Staff clef={clef} mode={mode} width={staffWidth}>
         
-        {/* Mod Učenje */}
         {mode === 'learn' && learnData.elements.map(el => (
            <Note key={el.id} left={el.left} top={(el.pos * 15) - 8} name={el.name} showLabel={true} ledger={el.ledger} onClick={() => playTone(el.freq)} />
         ))}
 
-        {/* Mod Kviz */}
         {mode === 'quiz' && currentNote && (
           <div style={{ position: 'absolute', left: '50%', top: `${(currentNote.position * 15) - 8}px`, width: '20px', height: '16px', backgroundColor: feedback.isCorrect ? '#4CAF50' : '#111', borderRadius: '50%', transform: 'translateX(-50%) rotate(-15deg)' }}>
             {currentNote.ledger && <div style={{ position: 'absolute', top: '50%', left: '-30%', width: '160%', height: '2px', backgroundColor: '#111' }}></div>}
           </div>
         )}
 
-        {/* Mod Melodije */}
         {mode === 'melody' && (
           <>
             <div style={{ position: 'absolute', left: '10px', top: '30px', fontSize: '30px', fontWeight: 'bold', lineHeight: '30px', color: '#666', display: 'flex', flexDirection: 'column' }}>
@@ -307,15 +296,20 @@ export default function ClefApp() {
         )}
       </Staff>
 
-      {/* Tastatura za Kviz */}
+      {/* DODATO: Vraćen prostor za ispisivanje poruka o tačnom/netačnom odgovoru */}
       {mode === 'quiz' && (
-        <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px' }}>
-          {SOLFEGIO.map((solf) => (
-            <button key={solf} onClick={() => handleGuess(solf)} disabled={feedback.isCorrect} style={{ padding: '12px 10px', fontSize: '16px', fontWeight: 'bold', color: 'white', border: 'none', borderRadius: '8px', flex: '1 1 calc(30% - 10px)', minWidth: '70px', backgroundColor: feedback.isCorrect ? '#ccc' : '#007BFF', cursor: feedback.isCorrect ? 'not-allowed' : 'pointer' }}>
-              {solf}
-            </button>
-          ))}
-        </div>
+        <>
+          <div style={{ minHeight: '30px', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: feedback.isCorrect ? '#4CAF50' : '#E53935' }}>
+            {feedback.show ? feedback.text : 'Koja je ovo nota? (Tajmer kreće na prvi klik)'}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px' }}>
+            {SOLFEGIO.map((solf) => (
+              <button key={solf} onClick={() => handleGuess(solf)} disabled={feedback.isCorrect} style={{ padding: '12px 10px', fontSize: '16px', fontWeight: 'bold', color: 'white', border: 'none', borderRadius: '8px', flex: '1 1 calc(30% - 10px)', minWidth: '70px', backgroundColor: feedback.isCorrect ? '#ccc' : '#007BFF', cursor: feedback.isCorrect ? 'not-allowed' : 'pointer' }}>
+                {solf}
+              </button>
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
