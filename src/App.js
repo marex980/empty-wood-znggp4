@@ -165,6 +165,18 @@ const Note = React.memo(({ left, pos, name, showLabel, ledger, onClick }) => {
 });
 
 // ==========================================
+// POMOĆNA FUNKCIJA ZA MEŠANJE NIZA (Fisher–Yates)
+// ==========================================
+function shuffleArray(array) {
+  const arr = [...array];
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+// ==========================================
 // 4. MAIN APP COMPONENT (App.js)
 // ==========================================
 
@@ -179,6 +191,11 @@ export default function ClefApp() {
   const [feedback, setFeedback] = useState({ show: false, isCorrect: false, text: '' });
   const [timer, setTimer] = useState(0);
   const [quizActive, setQuizActive] = useState(false);
+
+  
+  // NOVO: shuffle bag za kviz
+  const [noteQueue, setNoteQueue] = useState([]);
+  const [queueIndex, setQueueIndex] = useState(0);
   
   // MELODIJA STATE
   const [activeMelodyType, setActiveMelodyType] = useState('2/4');
@@ -221,16 +238,37 @@ export default function ClefApp() {
   const activeMelodyData = useMemo(() => buildMelodyObj(MELODIES[clef][activeMelodyType][melodyIndex] || MELODIES[clef][activeMelodyType][0]), [buildMelodyObj, clef, activeMelodyType, melodyIndex]);
 
   // Funkcija za izbor note obmotana u useCallback
-  const pickRandomNote = useCallback(() => {
-    setCurrentNote(activeNotesDb[Math.floor(Math.random() * activeNotesDb.length)]);
-    setFeedback({ show: false, isCorrect: false, text: '' });
-  }, [activeNotesDb]);
+  const nextQuizNote = useCallback(() => {
+    setQueueIndex(prev => {
+      const nextIdx = prev + 1;
+      if (nextIdx >= noteQueue.length) {
+        // Sve note prikazane – ponovo izmešaj
+        const newQueue = shuffleArray(activeNotesDb);
+        setNoteQueue(newQueue);
+        setCurrentNote(newQueue[0]);
+        return 0;
+      } else {
+        setCurrentNote(noteQueue[nextIdx]);
+        return nextIdx;
+      }
+    });
+    // Ukloni staru poruku (feedback) – biće postavljen u handleGuess
+  }, [noteQueue, activeNotesDb]);
 
+  // Reset kviza sada inicijalizuje keš
   const resetQuiz = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    setCorrectCount(0); setTotalCount(0); setTimer(0); setQuizActive(false);
-    pickRandomNote();
-  }, [pickRandomNote]);
+    setCorrectCount(0);
+    setTotalCount(0);
+    setTimer(0);
+    setQuizActive(false);
+    // Inicijalizuj keš
+    const shuffled = shuffleArray(activeNotesDb);
+    setNoteQueue(shuffled);
+    setQueueIndex(0);
+    setCurrentNote(shuffled[0]);
+    setFeedback({ show: false, isCorrect: false, text: '' });
+  }, [activeNotesDb]);
 
   // Čišćenje tajmera prilikom unmountovanja komponente (Tačka 3)
   useEffect(() => {
@@ -260,11 +298,15 @@ export default function ClefApp() {
       
       // Cleanup prethodnog timeouta ako korisnik brzo klikće
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      timeoutRef.current = setTimeout(() => pickRandomNote(), 300);
+      // Posle 300 ms prelazimo na sledeću notu iz kese
+      timeoutRef.current = setTimeout(() => {
+        nextQuizNote();
+        setFeedback({ show: false, isCorrect: false, text: '' });
+      }, 300);
     } else {
       setFeedback({ show: true, isCorrect: false, text: `To nije ${guessName}. Pokušaj ponovo!` });
     }
-  }, [currentNote, quizActive, pickRandomNote]);
+  }, [currentNote, quizActive, nextQuizNote]);
 
   // Metronom efekt - Popravljena logika računanja dobe (Tačka 4)
   useEffect(() => {
@@ -322,10 +364,9 @@ export default function ClefApp() {
 
       {/* GLAVNI NOTNI SISTEM */}
       <Staff clef={clef} width={staffWidth}>
-        
         {/* Mod 1: Učenje */}
         {mode === 'learn' && learnData.elements.map(el => (
-           <Note key={el.id} left={el.left} pos={el.pos} name={el.name} showLabel={true} ledger={el.ledger} onClick={() => playTone(el.freq)} />
+          <Note key={el.id} left={el.left} pos={el.pos} name={el.name} showLabel={true} ledger={el.ledger} onClick={() => playTone(el.freq)} />
         ))}
 
         {/* Mod 2: Kviz */}
