@@ -30,23 +30,46 @@ const SOLFEGIO = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
 const MELODIES = {
   bass: {
     '2/4': [
+      // postojeće 3 melodije
       ['DO', 'MI', '|', 'SOL', 'FA', '|', 'RE', 'FA', '|', 'MI', 'DO', '||'],
       ['DO', 'RE', '|', 'MI', 'FA', '|', 'SOL', 'LA', '|', 'SI', 'SOL', '||'],
-      ['MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'MI', '|', 'DO', 'DO', '||']
+      ['MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'MI', '|', 'DO', 'DO', '||'],
+      // nove (minimum 5 ukupno)
+      ['DO', 'SOL', '|', 'MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'DO', '||'],
+      ['RE', 'MI', '|', 'FA', 'SOL', '|', 'LA', 'FA', '|', 'MI', 'RE', '||'],
+      ['DO', 'DO', '|', 'RE', 'RE', '|', 'MI', 'FA', '|', 'SOL', 'DO', '||'],
+      ['SI', 'LA', '|', 'SOL', 'FA', '|', 'MI', 'RE', '|', 'DO', 'DO', '||']  // silazna lestvica
     ],
     '3/4': [
       ['DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'LA', 'SOL', '|', 'FA', 'MI', 'RE', '||'],
       ['DO', 'MI', 'SOL', '|', 'SOL', 'FA', 'MI', '|', 'RE', 'FA', 'LA', '|', 'LA', 'SOL', 'FA', '||'],
-      ['MI', 'FA', 'SOL', '|', 'DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'SOL', 'DO', '||']
+      ['MI', 'FA', 'SOL', '|', 'DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'SOL', 'DO', '||'],
+      // nove
+      ['DO', 'SOL', 'DO', '|', 'SI', 'LA', 'SOL', '|', 'FA', 'MI', 'RE', '|', 'DO', 'DO', 'DO', '||'],
+      ['RE', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '|', 'RE', 'FA', 'LA', '|', 'SOL', 'DO', 'DO', '||'],
+      ['DO', 'MI', 'SOL', '|', 'LA', 'SOL', 'FA', '|', 'MI', 'RE', 'DO', '|', 'SOL', 'DO', 'DO', '||'],
+      ['MI', 'RE', 'DO', '|', 'FA', 'MI', 'RE', '|', 'SOL', 'FA', 'MI', '|', 'LA', 'SOL', 'FA', '||']
     ]
   },
   treble: {
     '2/4': [
       ['DO', 'MI', '|', 'RE', 'FA', '|', 'MI', 'SOL', '|', 'FA', 'MI', '||'],
-      ['MI', 'SOL', '|', 'DO', 'DO', '|', 'SI', 'LA', '|', 'SOL', 'MI', '||']
+      ['MI', 'SOL', '|', 'DO', 'DO', '|', 'SI', 'LA', '|', 'SOL', 'MI', '||'],
+      // nove (minimum 5)
+      ['DO', 'RE', '|', 'MI', 'FA', '|', 'SOL', 'LA', '|', 'SI', 'DO', '||'],  // C-dur lestvica gore
+      ['DO', 'SI', '|', 'LA', 'SOL', '|', 'FA', 'MI', '|', 'RE', 'DO', '||'],  // lestvica dole
+      ['MI', 'MI', '|', 'FA', 'SOL', '|', 'LA', 'SOL', '|', 'FA', 'MI', '||'],
+      ['DO', 'SOL', '|', 'MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'DO', '||'],
+      ['RE', 'MI', '|', 'FA', 'SOL', '|', 'LA', 'FA', '|', 'MI', 'RE', '||']
     ],
     '3/4': [
-      ['DO', 'MI', 'SOL', '|', 'SOL', 'FA', 'MI', '|', 'RE', 'FA', 'LA', '|', 'LA', 'SOL', 'FA', '||']
+      ['DO', 'MI', 'SOL', '|', 'SOL', 'FA', 'MI', '|', 'RE', 'FA', 'LA', '|', 'LA', 'SOL', 'FA', '||'],
+      // nove (minimum 5)
+      ['DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'DO', 'SI', '|', 'LA', 'SOL', 'DO', '||'],
+      ['MI', 'SOL', 'DO', '|', 'SI', 'LA', 'SOL', '|', 'FA', 'MI', 'RE', '|', 'DO', 'DO', 'DO', '||'],
+      ['DO', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '|', 'FA', 'LA', 'DO', '|', 'SOL', 'DO', 'DO', '||'],
+      ['RE', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '|', 'RE', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '||'],
+      ['DO', 'MI', 'RE', '|', 'FA', 'SOL', 'FA', '|', 'MI', 'SOL', 'DO', '|', 'DO', 'DO', 'DO', '||']
     ]
   }
 };
