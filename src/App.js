@@ -135,6 +135,9 @@ const playClick = (isStrong) => {
 // ==========================================
 // 3. VEXFLOW RENDERER (Ispravljen "Too many ticks" bug)
 // ==========================================
+// ==========================================
+// 3. VEXFLOW RENDERER (Ispravljeno preklapanje nota)
+// ==========================================
 const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
   const containerRef = useRef(null);
 
@@ -151,23 +154,32 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
       .setContext(context)
       .draw();
 
-    const measures = [];
-    let currentMeasure = [];
-    let beamable = [];
+    const allTickables = [];
+    let currentMeasureNotesForBeams = [];
+    const allBeams = [];
     let globalIdx = 0;
 
     elements.forEach(el => {
-      if (el.type === 'barline' || el.type === 'doublebar') {
-        if (currentMeasure.length > 0) {
-          measures.push({ notes: currentMeasure, beamable });
-          currentMeasure = [];
-          beamable = [];
+      // 1. Dodavanje pregrada za taktove DIREKTNO u isti niz
+      if (el.type === 'barline') {
+        allTickables.push(new VF.BarNote(VF.Barline.type.SINGLE));
+        if (currentMeasureNotesForBeams.length > 0) {
+          allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
+          currentMeasureNotesForBeams = [];
+        }
+        return;
+      } else if (el.type === 'doublebar') {
+        allTickables.push(new VF.BarNote(VF.Barline.type.DOUBLE));
+        if (currentMeasureNotesForBeams.length > 0) {
+          allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
+          currentMeasureNotesForBeams = [];
         }
         return;
       }
 
+      // 2. Dodavanje nota i pauza
       let staveElement;
-if (el.type === 'note') {
+      if (el.type === 'note') {
         const noteObj = clef === 'bass'
           ? BASS_NOTES.find(n => n.name === el.name)
           : TREBLE_NOTES.find(n => n.name === el.name);
@@ -175,7 +187,7 @@ if (el.type === 'note') {
 
         const vfDuration = durationMap[el.duration] || 'q';
         staveElement = new VF.StaveNote({
-          clef: clef === 'bass' ? 'bass' : 'treble', // <-- OVO JE FALILO!
+          clef: clef === 'bass' ? 'bass' : 'treble',
           keys: [noteObj.vexKey],
           duration: vfDuration
         });
@@ -184,45 +196,44 @@ if (el.type === 'note') {
           staveElement.addModifier(new VF.Dot(), 0);
         }
 
-        beamable.push({ note: staveElement, duration: el.duration });
+        currentMeasureNotesForBeams.push(staveElement);
       } else if (el.type === 'rest') {
         const vfRest = restDurationMap[el.duration] || 'qr';
         staveElement = new VF.StaveNote({
-          clef: clef === 'bass' ? 'bass' : 'treble', // <-- DODATO I ZA PAUZE (da bi bile centrirane)
-          keys: ['b/4'],
+          clef: clef === 'bass' ? 'bass' : 'treble',
+          keys: ['b/4'],         
           duration: vfRest
         });
       }
+
+      // Bojenje aktivne note
       if (highlightIndex === globalIdx && staveElement) {
         staveElement.setStyle({ fillStyle: '#E53935', strokeStyle: '#E53935' });
       }
 
-      currentMeasure.push(staveElement);
+      allTickables.push(staveElement);
       globalIdx++;
     });
 
-    if (currentMeasure.length > 0) {
-      measures.push({ notes: currentMeasure, beamable });
+    // Povezivanje osmina na kraju melodije
+    if (currentMeasureNotesForBeams.length > 0) {
+      allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
     }
 
-    // Crtanje taktova
-    measures.forEach(measure => {
-      if (measure.notes.length === 0) return;
+    if (allTickables.length === 0) return;
 
-      const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
-      
-      // OVO JE DODATO: Sprečava grešku "Too many ticks" za dugačke skale
-      voice.setStrict(false); 
-      
-      voice.addTickables(measure.notes);
+    // MAGIJA OBRADE: Sve ide u jedan Voice kako bi Formatter to ravnomerno rasporedio
+    const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+    voice.setStrict(false); 
+    voice.addTickables(allTickables);
 
-      const notesOnly = measure.beamable.map(b => b.note);
-      const beams = VF.Beam.generateBeams(notesOnly);
+    // Formatiranje celog niza preko cele širine
+    new VF.Formatter().joinVoices([voice]).formatToStave([voice], stave);
+    
+    // Crtanje
+    voice.draw(context, stave);
+    allBeams.forEach(beam => beam.setContext(context).draw());
 
-      new VF.Formatter().joinVoices([voice]).formatToStave([voice], stave);
-      voice.draw(context, stave);
-      beams.forEach(beam => beam.setContext(context).draw());
-    });
   }, [elements, clef, width, highlightIndex]);
 
   return <div ref={containerRef} />;
