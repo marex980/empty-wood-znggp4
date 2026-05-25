@@ -1,190 +1,215 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Vex from 'vexflow';
+
+const VF = Vex.Flow;
 
 // ==========================================
-// 1. MUSIC DATA (musicData.js)
+// 1. MUSIC DATA
 // ==========================================
 
 const BASS_NOTES = [
-  { id: 0, name: 'SI', position: -1, freq: 246.94 },
-  { id: 1, name: 'LA', position: 0, freq: 220.00 },
-  { id: 2, name: 'SOL', position: 1, freq: 196.00 },
-  { id: 3, name: 'FA', position: 2, freq: 174.61 },
-  { id: 4, name: 'MI', position: 3, freq: 164.81 },
-  { id: 5, name: 'RE', position: 4, freq: 146.83 },
-  { id: 6, name: 'DO', position: 5, freq: 130.81 }
+  { id: 0, name: 'SI', position: -1, freq: 246.94, vexKey: 'b/3' },
+  { id: 1, name: 'LA', position: 0, freq: 220.00, vexKey: 'a/3' },
+  { id: 2, name: 'SOL', position: 1, freq: 196.00, vexKey: 'g/3' },
+  { id: 3, name: 'FA', position: 2, freq: 174.61, vexKey: 'f/3' },
+  { id: 4, name: 'MI', position: 3, freq: 164.81, vexKey: 'e/3' },
+  { id: 5, name: 'RE', position: 4, freq: 146.83, vexKey: 'd/3' },
+  { id: 6, name: 'DO', position: 5, freq: 130.81, vexKey: 'c/3' }
 ];
 
 const TREBLE_NOTES = [
-  { id: 10, name: 'DO', position: 3, freq: 523.25 },
-  { id: 11, name: 'SI', position: 4, freq: 493.88 },
-  { id: 12, name: 'LA', position: 5, freq: 440.00 },
-  { id: 13, name: 'SOL', position: 6, freq: 392.00 },
-  { id: 14, name: 'FA', position: 7, freq: 349.23 },
-  { id: 15, name: 'MI', position: 8, freq: 329.63 },
-  { id: 16, name: 'RE', position: 9, freq: 293.66 },
-  { id: 17, name: 'DO', position: 10, freq: 261.63, ledger: true }
+  { id: 10, name: 'DO', position: 3, freq: 523.25, vexKey: 'c/5' },
+  { id: 11, name: 'SI', position: 4, freq: 493.88, vexKey: 'b/4' },
+  { id: 12, name: 'LA', position: 5, freq: 440.00, vexKey: 'a/4' },
+  { id: 13, name: 'SOL', position: 6, freq: 392.00, vexKey: 'g/4' },
+  { id: 14, name: 'FA', position: 7, freq: 349.23, vexKey: 'f/4' },
+  { id: 15, name: 'MI', position: 8, freq: 329.63, vexKey: 'e/4' },
+  { id: 16, name: 'RE', position: 9, freq: 293.66, vexKey: 'd/4' },
+  { id: 17, name: 'DO', position: 10, freq: 261.63, vexKey: 'c/4', ledger: true }
 ];
 
 const SOLFEGIO = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
 
-const MELODIES = {
+const MELODIES_RHYTHMIC = {
   bass: {
     '2/4': [
-      // postojeće 3 melodije
-      ['DO', 'MI', '|', 'SOL', 'FA', '|', 'RE', 'FA', '|', 'MI', 'DO', '||'],
-      ['DO', 'RE', '|', 'MI', 'FA', '|', 'SOL', 'LA', '|', 'SI', 'SOL', '||'],
-      ['MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'MI', '|', 'DO', 'DO', '||'],
-      // nove (minimum 5 ukupno)
-      ['DO', 'SOL', '|', 'MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'DO', '||'],
-      ['RE', 'MI', '|', 'FA', 'SOL', '|', 'LA', 'FA', '|', 'MI', 'RE', '||'],
-      ['DO', 'DO', '|', 'RE', 'RE', '|', 'MI', 'FA', '|', 'SOL', 'DO', '||'],
-      ['SI', 'LA', '|', 'SOL', 'FA', '|', 'MI', 'RE', '|', 'DO', 'DO', '||']  // silazna lestvica
+      // Melodija sa slike (Tvoja Parlato vežba)
+      [
+        { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'FA', duration: 'q' }, { type: 'rest', duration: 'e' }, { type: 'note', name: 'SOL', duration: 'e' }, { type: 'barline' },
+        { type: 'note', name: 'LA', duration: 'q' }, { type: 'note', name: 'SOL', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'q' }, { type: 'rest', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'RE', duration: 'q.' }, { type: 'note', name: 'MI', duration: 'e' }, { type: 'barline' },
+        { type: 'note', name: 'RE', duration: 'q.' }, { type: 'note', name: 'DO', duration: 'e' }, { type: 'barline' },
+        { type: 'note', name: 'DO', duration: 'e' }, { type: 'note', name: 'SI', duration: 'e' }, { type: 'rest', duration: 'e' }, { type: 'note', name: 'SI', duration: 'e' }, { type: 'barline' },
+        { type: 'note', name: 'LA', duration: 'q' }, { type: 'rest', duration: 'q' }, { type: 'doublebar' }
+      ]
     ],
     '3/4': [
-      ['DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'LA', 'SOL', '|', 'FA', 'MI', 'RE', '||'],
-      ['DO', 'MI', 'SOL', '|', 'SOL', 'FA', 'MI', '|', 'RE', 'FA', 'LA', '|', 'LA', 'SOL', 'FA', '||'],
-      ['MI', 'FA', 'SOL', '|', 'DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'SOL', 'DO', '||'],
-      // nove
-      ['DO', 'SOL', 'DO', '|', 'SI', 'LA', 'SOL', '|', 'FA', 'MI', 'RE', '|', 'DO', 'DO', 'DO', '||'],
-      ['RE', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '|', 'RE', 'FA', 'LA', '|', 'SOL', 'DO', 'DO', '||'],
-      ['DO', 'MI', 'SOL', '|', 'LA', 'SOL', 'FA', '|', 'MI', 'RE', 'DO', '|', 'SOL', 'DO', 'DO', '||'],
-      ['MI', 'RE', 'DO', '|', 'FA', 'MI', 'RE', '|', 'SOL', 'FA', 'MI', '|', 'LA', 'SOL', 'FA', '||']
+      // Nova melodija u 3/4 taktu za bas ključ (sa polovinama 'h' i punktiranom polovinom 'h.')
+      [
+        { type: 'note', name: 'DO', duration: 'h' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'SOL', duration: 'h' }, { type: 'note', name: 'FA', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'RE', duration: 'q' }, { type: 'note', name: 'DO', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'SI', duration: 'h.' }, { type: 'doublebar' }
+      ]
     ]
   },
   treble: {
     '2/4': [
-      ['DO', 'MI', '|', 'RE', 'FA', '|', 'MI', 'SOL', '|', 'FA', 'MI', '||'],
-      ['MI', 'SOL', '|', 'DO', 'DO', '|', 'SI', 'LA', '|', 'SOL', 'MI', '||'],
-      // nove (minimum 5)
-      ['DO', 'RE', '|', 'MI', 'FA', '|', 'SOL', 'LA', '|', 'SI', 'DO', '||'],  // C-dur lestvica gore
-      ['DO', 'SI', '|', 'LA', 'SOL', '|', 'FA', 'MI', '|', 'RE', 'DO', '||'],  // lestvica dole
-      ['MI', 'MI', '|', 'FA', 'SOL', '|', 'LA', 'SOL', '|', 'FA', 'MI', '||'],
-      ['DO', 'SOL', '|', 'MI', 'DO', '|', 'FA', 'RE', '|', 'SOL', 'DO', '||'],
-      ['RE', 'MI', '|', 'FA', 'SOL', '|', 'LA', 'FA', '|', 'MI', 'RE', '||']
+      // Dinamična vežba u violinskom ključu
+      [
+        { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'SOL', duration: 'e' }, { type: 'note', name: 'FA', duration: 'e' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'RE', duration: 'q' }, { type: 'note', name: 'FA', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'h' }, { type: 'doublebar' }
+      ]
     ],
     '3/4': [
-      ['DO', 'MI', 'SOL', '|', 'SOL', 'FA', 'MI', '|', 'RE', 'FA', 'LA', '|', 'LA', 'SOL', 'FA', '||'],
-      // nove (minimum 5)
-      ['DO', 'RE', 'MI', '|', 'FA', 'SOL', 'LA', '|', 'SI', 'DO', 'SI', '|', 'LA', 'SOL', 'DO', '||'],
-      ['MI', 'SOL', 'DO', '|', 'SI', 'LA', 'SOL', '|', 'FA', 'MI', 'RE', '|', 'DO', 'DO', 'DO', '||'],
-      ['DO', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '|', 'FA', 'LA', 'DO', '|', 'SOL', 'DO', 'DO', '||'],
-      ['RE', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '|', 'RE', 'FA', 'LA', '|', 'SOL', 'MI', 'DO', '||'],
-      ['DO', 'MI', 'RE', '|', 'FA', 'SOL', 'FA', '|', 'MI', 'SOL', 'DO', '|', 'DO', 'DO', 'DO', '||']
+      // Valcer u violinskom ključu
+      [
+        { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'SOL', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'FA', duration: 'h' }, { type: 'note', name: 'RE', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'SI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'DO', duration: 'h.' }, { type: 'doublebar' }
+      ]
     ]
   }
 };
 
-const LEARN_SCALE_RAW = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
+const SCALE_RHYTHMIC = [
+  { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'RE', duration: 'q' },
+  { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'FA', duration: 'q' },
+  { type: 'note', name: 'SOL', duration: 'q' }, { type: 'note', name: 'LA', duration: 'q' },
+  { type: 'note', name: 'SI', duration: 'q' }, { type: 'doublebar' }
+];
 
 // ==========================================
-// 2. AUDIO UTILS (audioUtils.js)
+// 2. AUDIO UTILS
 // ==========================================
-// Optimizovano da AudioContext instanca živi izvan komponente
 let audioCtx = null;
-
 const initAudio = () => {
   if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
   if (audioCtx.state === 'suspended') audioCtx.resume();
   return audioCtx;
 };
-
-const playTone = (frequency) => {
-  const ctx = initAudio();
-  const osc = ctx.createOscillator();
-  const gainNode = ctx.createGain();
-  osc.type = 'sine'; 
-  osc.frequency.value = frequency;
-  osc.connect(gainNode); 
-  gainNode.connect(ctx.destination);
-  osc.start(); 
-  gainNode.gain.setValueAtTime(1, ctx.currentTime);
-  gainNode.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.5);
-  osc.stop(ctx.currentTime + 1.5);
-};
-
-const playClick = (isStrongBeat) => {
+const playTone = (freq) => {
+  if (!freq) return;
   const ctx = initAudio();
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
-  osc.type = 'triangle'; 
-  osc.frequency.value = isStrongBeat ? 880 : 440; 
-  osc.connect(gain); 
-  gain.connect(ctx.destination);
-  osc.start(); 
-  gain.gain.setValueAtTime(1, ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1); 
+  osc.type = 'sine'; osc.frequency.value = freq;
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(); gain.gain.setValueAtTime(1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 1.0);
+  osc.stop(ctx.currentTime + 1.0);
+};
+const playClick = (isStrong) => {
+  const ctx = initAudio();
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.type = 'triangle'; osc.frequency.value = isStrong ? 880 : 440;
+  osc.connect(gain); gain.connect(ctx.destination);
+  osc.start(); gain.gain.setValueAtTime(1, ctx.currentTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
   osc.stop(ctx.currentTime + 0.1);
 };
 
-
 // ==========================================
-// 3. UI KOMPONENTE (components/)
+// 3. VEXFLOW RENDERER
 // ==========================================
+const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
+  const containerRef = useRef(null);
 
-const HeaderButtons = React.memo(({ clef, setClef, mode, setMode, resetQuiz }) => (
-  <div style={{ marginBottom: '20px' }}>
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
-      <button aria-label="Violinski Ključ" onClick={() => { setClef('treble'); resetQuiz(); }} style={{ padding: '8px 15px', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: clef === 'treble' ? '#673AB7' : '#e0e0e0', color: clef === 'treble' ? '#fff' : '#333', cursor: 'pointer' }}>
-        𝄞 Violinski
-      </button>
-      <button aria-label="Bas Ključ" onClick={() => { setClef('bass'); resetQuiz(); }} style={{ padding: '8px 15px', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: clef === 'bass' ? '#009688' : '#e0e0e0', color: clef === 'bass' ? '#fff' : '#333', cursor: 'pointer' }}>
-        𝄢 Bas ključ
-      </button>
-    </div>
-    
-    <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
-      <button aria-label="Mod učenje" onClick={() => setMode('learn')} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'learn' ? '#FF9800' : '#ddd', color: mode === 'learn' ? 'white' : '#333', cursor: 'pointer' }}>📖 Učenje</button>
-      <button aria-label="Mod kviz" onClick={() => { setMode('quiz'); resetQuiz(); }} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'quiz' ? '#007BFF' : '#ddd', color: mode === 'quiz' ? 'white' : '#333', cursor: 'pointer' }}>🎯 Kviz</button>
-      <button aria-label="Mod melodije" onClick={() => setMode('melody')} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'melody' ? '#4CAF50' : '#ddd', color: mode === 'melody' ? 'white' : '#333', cursor: 'pointer' }}>🎼 Melodije</button>
-    </div>
-  </div>
-));
+  useEffect(() => {
+    if (!containerRef.current) return;
+    containerRef.current.innerHTML = '';
 
-const Staff = React.memo(({ clef, width, children }) => (
-  <div style={{ width: '100%', overflowX: 'auto', overflowY: 'hidden', backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: '10px', margin: '20px 0', padding: '40px 0', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)' }}>
-    <div style={{ position: 'relative', height: '120px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: width }}>
-      <div style={{ position: 'absolute', left: '10px', top: '-30px', fontSize: '14px', fontWeight: 'bold', color: clef === 'treble' ? '#673AB7' : '#009688', background: '#eee', padding: '2px 8px', borderRadius: '5px' }}>
-        {clef === 'treble' ? '𝄞 Violinski Ključ' : '𝄢 Bas Ključ (F)'}
-      </div>
-      {[...Array(5)].map((_, i) => <div key={i} style={{ width: '100%', height: '2px', backgroundColor: '#333' }}></div>)}
-      {children}
-    </div>
-  </div>
-));
+    const renderer = new VF.Renderer(containerRef.current, VF.Renderer.Backends.SVG);
+    renderer.resize(width, 170);
+    const context = renderer.getContext();
 
-const Note = React.memo(({ left, pos, name, showLabel, ledger, onClick }) => {
-  // Optimizovano računanje Y pozicije bazirano na stvarnoj visini od 120px podeljenoj na 8 koraka.
-  const topPosition = (pos * 15) - 8; 
+    const stave = new VF.Stave(10, 30, width - 20)
+      .addClef(clef === 'bass' ? 'bass' : 'treble')
+      .setContext(context).draw();
 
-  return (
-    <div onClick={onClick} style={{ position: 'absolute', left: `${left}px`, top: `${topPosition}px`, width: '20px', height: '16px', backgroundColor: '#111', borderRadius: '50%', transform: 'translateX(-50%) rotate(-15deg)', cursor: onClick ? 'pointer' : 'default' }}>
-      {ledger && <div style={{ position: 'absolute', top: '50%', left: '-30%', width: '160%', height: '2px', backgroundColor: '#111', transform: 'translateY(-50%)' }}></div>}
-      {showLabel && <div style={{ position: 'absolute', top: '22px', left: '50%', transform: 'translateX(-50%) rotate(15deg)', fontSize: '12px', fontWeight: 'bold', color: '#E53935' }}>{name}</div>}
-    </div>
-  );
+    const measures = [];
+    let currentMeasure = [];
+    let beamable = [];
+    let globalIdx = 0;
+
+    const processElement = (el) => {
+      if (el.type === 'barline' || el.type === 'doublebar') {
+        measures.push({ notes: currentMeasure, beamable });
+        currentMeasure = [];
+        beamable = [];
+        return;
+      }
+
+      let staveElement;
+      if (el.type === 'note') {
+        const noteObj = clef === 'bass' 
+          ? BASS_NOTES.find(n => n.name === el.name) 
+          : TREBLE_NOTES.find(n => n.name === el.name);
+        if (!noteObj) return;
+
+        staveElement = new VF.StaveNote({
+          clef: clef === 'bass' ? 'bass' : 'treble',
+          keys: [noteObj.vexKey],
+          duration: el.duration
+        });
+        if (el.duration.includes('.')) staveElement.addModifier(new VF.Dot(), 0);
+        beamable.push({ note: staveElement, duration: el.duration });
+      } else if (el.type === 'rest') {
+        staveElement = new VF.StaveNote({
+          clef: clef === 'bass' ? 'bass' : 'treble',
+          keys: ['b/4'],
+          duration: el.duration + 'r'
+        });
+      }
+
+      if (highlightIndex === globalIdx && staveElement) {
+        staveElement.setStyle({ fillStyle: '#E53935', strokeStyle: '#E53935' });
+      }
+
+      currentMeasure.push(staveElement);
+      globalIdx++;
+    };
+
+    elements.forEach(processElement);
+    if (currentMeasure.length > 0) measures.push({ notes: currentMeasure, beamable });
+
+    const allVoices = [];
+    measures.forEach(measure => {
+      if (measure.notes.length === 0) return;
+      const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+      voice.addTickables(measure.notes);
+      const notesOnly = measure.beamable.map(b => b.note);
+      const beams = VF.Beam.generateBeams(notesOnly);
+      allVoices.push({ voice, beams });
+    });
+
+    const formatter = new VF.Formatter();
+    allVoices.forEach(({ voice }) => formatter.joinVoices([voice]));
+    formatter.formatToStave([...allVoices.map(v => v.voice)], stave);
+
+    allVoices.forEach(({ voice, beams }) => {
+      voice.draw(context, stave);
+      beams.forEach(beam => beam.setContext(context).draw());
+    });
+  }, [elements, clef, width, highlightIndex]);
+
+  return <div ref={containerRef} />;
 });
 
 // ==========================================
-// POMOĆNA FUNKCIJA ZA MEŠANJE NIZA (Fisher–Yates)
+// 4. GLAVNA APLIKACIJA
 // ==========================================
-function shuffleArray(array) {
-  const arr = [...array];
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
-}
-
-// ==========================================
-// 4. MAIN APP COMPONENT (App.js)
-// ==========================================
-
 export default function ClefApp() {
-  const [clef, setClef] = useState('bass'); 
+  const [clef, setClef] = useState('bass');
   const [mode, setMode] = useState('learn');
-  
-  // KVIZ STATE
+
+  // Kviz
   const [currentNote, setCurrentNote] = useState(null);
   const [correctCount, setCorrectCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
@@ -192,155 +217,250 @@ export default function ClefApp() {
   const [timer, setTimer] = useState(0);
   const [quizActive, setQuizActive] = useState(false);
 
-  
-  // NOVO: shuffle bag za kviz
-  const [noteQueue, setNoteQueue] = useState([]);
-  const [queueIndex, setQueueIndex] = useState(0);
-  
-  // MELODIJA STATE
+  // Melodija / Parlato
   const [activeMelodyType, setActiveMelodyType] = useState('2/4');
   const [metronomeOn, setMetronomeOn] = useState(false);
-  const [currentTick, setCurrentTick] = useState(-1);
-  const [melodyIndex, setMelodyIndex] = useState(0); // Za biranje nasumične melodije
+  const [currentBeatIdx, setCurrentBeatIdx] = useState(-1);
+  const [melodyIndex, setMelodyIndex] = useState(0);
 
-  // Refs for Cleanup
+  // Parlato
+  const [parlatoActive, setParlatoActive] = useState(false);
+  const [tapTimes, setTapTimes] = useState([]);
+  const [parlatoStart, setParlatoStart] = useState(null);
+  const [parlatoResults, setParlatoResults] = useState(null);
+
+  // BPM
+  const [bpm, setBpm] = useState(60);
+
+  // Učenje – koja nota je trenutno aktivna (kliknuta)
+  const [activeLearnNote, setActiveLearnNote] = useState(null);
+
   const timeoutRef = useRef(null);
+  const learnTimeoutRef = useRef(null);
 
-  // Optimizacija baze aktivnih nota pomoću Map objekta za brzu pretragu (Tačka 6)
-  const activeNotesDb = useMemo(() => (clef === 'bass' ? BASS_NOTES : TREBLE_NOTES), [clef]);
-  const activeNoteMap = useMemo(() => new Map(activeNotesDb.map(n => [n.name, n])), [activeNotesDb]);
+  const activeNotesDb = useMemo(() => clef === 'bass' ? BASS_NOTES : TREBLE_NOTES, [clef]);
+  const noteMap = useMemo(() => new Map(activeNotesDb.map(n => [n.name, n])), [activeNotesDb]);
 
-  // Izolovana logika za građenje melodija pomoću useMemo (Tačka 1)
-  const buildMelodyObj = useCallback((symbols) => {
-    let left = 40;
-    let noteIndex = 0;
-    const elements = [];
-    
-    symbols.forEach((sym, index) => {
-      if (sym === '|') {
-        elements.push({ id: index, type: 'barline', left: left - 15 });
-      } else if (sym === '||') {
-        elements.push({ id: index, type: 'doublebar', left: left });
+  const currentMelody = useMemo(() => {
+    const list = MELODIES_RHYTHMIC[clef]?.[activeMelodyType];
+    return list ? list[melodyIndex % list.length] : SCALE_RHYTHMIC;
+  }, [clef, activeMelodyType, melodyIndex]);
+
+  // Lista nota za učenje (iz SCALE_RHYTHMIC, bez barline)
+  const learningNotes = useMemo(() => {
+    return SCALE_RHYTHMIC
+      .filter(el => el.type === 'note')
+      .map(el => ({ name: el.name, freq: noteMap.get(el.name)?.freq }));
+  }, [noteMap]);
+
+  const beatDurationMs = 60000 / bpm;
+
+  const timePoints = useMemo(() => {
+    const points = [];
+    let currentTime = 0;
+    currentMelody.forEach((el, idx) => {
+      if (el.type === 'barline' || el.type === 'doublebar') return;
+      const durStr = el.duration || 'q';
+      let relativeDur = 1;
+      if (durStr.startsWith('h')) relativeDur = 2;
+      else if (durStr.startsWith('q')) relativeDur = 1;
+      else if (durStr.startsWith('e')) relativeDur = 0.5;
+      if (durStr.includes('.')) relativeDur *= 1.5;
+      points.push({
+        idx,
+        start: currentTime,
+        end: currentTime + relativeDur * beatDurationMs,
+        isRest: el.type === 'rest',
+        freq: el.type === 'note' ? (noteMap.get(el.name)?.freq || null) : null
+      });
+      currentTime += relativeDur * beatDurationMs;
+    });
+    return { points, totalTime: currentTime };
+  }, [currentMelody, beatDurationMs, noteMap]);
+
+  // Metronom sa klikom
+  useEffect(() => {
+    if (!(mode === 'melody' && metronomeOn)) {
+      setCurrentBeatIdx(-1);
+      return;
+    }
+    const points = timePoints.points;
+    if (points.length === 0) return;
+
+    setCurrentBeatIdx(0);
+    const startTime = performance.now();
+    let lastBeatNumber = -1;
+
+    const interval = setInterval(() => {
+      const now = performance.now() - startTime;
+      if (now > timePoints.totalTime + 500) {
+        setMetronomeOn(false);
+        return;
+      }
+
+      const active = points.find(p => now >= p.start && now < p.end);
+      if (active) {
+        setCurrentBeatIdx(prev => {
+          if (prev !== active.idx) {
+            if (active.freq) playTone(active.freq);
+            return active.idx;
+          }
+          return prev;
+        });
       } else {
-        const noteObj = activeNoteMap.get(sym);
-        if (noteObj) {
-          elements.push({ id: index, type: 'note', name: sym, pos: noteObj.position, freq: noteObj.freq, left: left, noteIndex: noteIndex, ledger: noteObj.ledger });
-          left += 55;
-          noteIndex++;
+        setCurrentBeatIdx(-1);
+      }
+
+      const currentBeat = Math.floor(now / beatDurationMs);
+      if (currentBeat !== lastBeatNumber) {
+        lastBeatNumber = currentBeat;
+        const isStrong = currentBeat % 4 === 0;
+        playClick(isStrong);
+      }
+    }, 30);
+    return () => clearInterval(interval);
+  }, [mode, metronomeOn, timePoints, beatDurationMs]);
+
+  // Parlato auto-stop
+  useEffect(() => {
+    let interval;
+    if (parlatoActive && parlatoStart) {
+      interval = setInterval(() => {
+        const elapsed = performance.now() - parlatoStart;
+        if (elapsed >= timePoints.totalTime + 500) {
+          calculateParlatoScore();
         }
-      }
-    });
-    return { elements, totalWidth: left + 30 };
-  }, [activeNoteMap]);
+      }, 100);
+    }
+    return () => clearInterval(interval);
+  }, [parlatoActive, parlatoStart, timePoints.totalTime]);
 
-  // Izvedeni podaci koji se računaju samo kada se zavisnosti promene
-  const learnData = useMemo(() => buildMelodyObj(LEARN_SCALE_RAW), [buildMelodyObj]);
-  const activeMelodyData = useMemo(() => buildMelodyObj(MELODIES[clef][activeMelodyType][melodyIndex] || MELODIES[clef][activeMelodyType][0]), [buildMelodyObj, clef, activeMelodyType, melodyIndex]);
-
-  // Funkcija za izbor note obmotana u useCallback
-  const nextQuizNote = useCallback(() => {
-    setQueueIndex(prev => {
-      const nextIdx = prev + 1;
-      if (nextIdx >= noteQueue.length) {
-        // Sve note prikazane – ponovo izmešaj
-        const newQueue = shuffleArray(activeNotesDb);
-        setNoteQueue(newQueue);
-        setCurrentNote(newQueue[0]);
-        return 0;
+  // Parlato tap detekcija
+  useEffect(() => {
+    const handler = (e) => {
+      if (!parlatoActive || e.key !== ' ') return;
+      e.preventDefault();
+      if (!parlatoStart) {
+        setParlatoStart(performance.now());
+        setTapTimes([0]);
+        playClick(true);
       } else {
-        setCurrentNote(noteQueue[nextIdx]);
-        return nextIdx;
+        const tap = performance.now() - parlatoStart;
+        setTapTimes(prev => [...prev, tap]);
+        playClick(false);
       }
-    });
-    // Ukloni staru poruku (feedback) – biće postavljen u handleGuess
-  }, [noteQueue, activeNotesDb]);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [parlatoActive, parlatoStart]);
 
-  // Reset kviza sada inicijalizuje keš
+  const calculateParlatoScore = useCallback(() => {
+    if (tapTimes.length === 0) return;
+    const expectedTaps = timePoints.points.filter(p => !p.isRest).map(p => p.start);
+    let correct = 0, early = 0, late = 0, missed = 0;
+    let usedTaps = new Array(tapTimes.length).fill(false);
+
+    expectedTaps.forEach(expected => {
+      let bestIdx = -1, bestDiff = Infinity;
+      tapTimes.forEach((t, i) => {
+        if (usedTaps[i]) return;
+        const diff = Math.abs(t - expected);
+        if (diff < bestDiff) {
+          bestDiff = diff;
+          bestIdx = i;
+        }
+      });
+      if (bestIdx === -1) { missed++; return; }
+      const diff = tapTimes[bestIdx] - expected;
+      if (Math.abs(diff) <= 150) { correct++; usedTaps[bestIdx] = true; }
+      else if (diff < -150) { early++; usedTaps[bestIdx] = true; }
+      else if (diff > 150) { late++; usedTaps[bestIdx] = true; }
+      else { missed++; }
+    });
+
+    const scorePercentage = Math.round((correct / expectedTaps.length) * 100);
+    setParlatoResults({ scorePercentage, correct, early, late, missed, total: expectedTaps.length });
+    setParlatoActive(false);
+    setParlatoStart(null);
+  }, [tapTimes, timePoints]);
+
+  const toggleParlato = () => {
+    if (parlatoActive) {
+      calculateParlatoScore();
+    } else {
+      setParlatoActive(true);
+      setTapTimes([]);
+      setParlatoStart(null);
+      setParlatoResults(null);
+    }
+  };
+
+  // Funkcija za klik na notu u učenju
+  const handleLearnClick = (note) => {
+    playTone(note.freq);
+    setActiveLearnNote(note.name);
+    if (learnTimeoutRef.current) clearTimeout(learnTimeoutRef.current);
+    learnTimeoutRef.current = setTimeout(() => setActiveLearnNote(null), 400);
+  };
+
+  // Kviz logika
   const resetQuiz = useCallback(() => {
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
     setCorrectCount(0);
     setTotalCount(0);
     setTimer(0);
     setQuizActive(false);
-    // Inicijalizuj keš
-    const shuffled = shuffleArray(activeNotesDb);
-    setNoteQueue(shuffled);
-    setQueueIndex(0);
-    setCurrentNote(shuffled[0]);
+    const randomNote = activeNotesDb[Math.floor(Math.random() * activeNotesDb.length)];
+    setCurrentNote(randomNote);
     setFeedback({ show: false, isCorrect: false, text: '' });
   }, [activeNotesDb]);
 
-  // Čišćenje tajmera prilikom unmountovanja komponente (Tačka 3)
   useEffect(() => {
-    return () => { if (timeoutRef.current) clearTimeout(timeoutRef.current); };
-  }, []);
+    if (mode === 'quiz') resetQuiz();
+  }, [mode, resetQuiz]);
 
-  // Tajmer štoperice
   useEffect(() => {
     let interval;
-    if (mode === 'quiz' && quizActive) interval = setInterval(() => setTimer(prev => prev + 1), 1000);
+    if (mode === 'quiz' && quizActive) interval = setInterval(() => setTimer(t => t + 1), 1000);
     return () => clearInterval(interval);
   }, [mode, quizActive]);
 
-  useEffect(() => {
-    if (mode === 'quiz') resetQuiz();
-  }, [mode, clef, resetQuiz]);
-
-  const handleGuess = useCallback((guessName) => {
-    if (!currentNote) return;
+  const handleGuess = (name) => {
+    if (!currentNote || feedback.isCorrect) return;
     if (!quizActive) setQuizActive(true);
-    setTotalCount(prev => prev + 1);
-    
-    if (guessName === currentNote.name) {
-      setCorrectCount(prev => prev + 1);
+    setTotalCount(p => p + 1);
+    if (name === currentNote.name) {
+      setCorrectCount(p => p + 1);
       setFeedback({ show: true, isCorrect: true, text: 'Bravo! 🎉' });
       playTone(currentNote.freq);
-      
-      // Cleanup prethodnog timeouta ako korisnik brzo klikće
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      // Posle 300 ms prelazimo na sledeću notu iz kese
       timeoutRef.current = setTimeout(() => {
-        nextQuizNote();
+        const next = activeNotesDb[Math.floor(Math.random() * activeNotesDb.length)];
+        setCurrentNote(next);
         setFeedback({ show: false, isCorrect: false, text: '' });
-      }, 300);
+      }, 800);
     } else {
-      setFeedback({ show: true, isCorrect: false, text: `To nije ${guessName}. Pokušaj ponovo!` });
+      setFeedback({ show: true, isCorrect: false, text: `To nije ${name}. Pokušaj ponovo!` });
     }
-  }, [currentNote, quizActive, nextQuizNote]);
+  };
 
-  // Metronom efekt - Popravljena logika računanja dobe (Tačka 4)
-  useEffect(() => {
-    let interval;
-    if (mode === 'melody' && metronomeOn) {
-      setCurrentTick(0);
-      playClick(true); // Inicijalni klik prve dobe
-
-      const beatsPerMeasure = activeMelodyType === '2/4' ? 2 : 3;
-
-      interval = setInterval(() => {
-        setCurrentTick(prevTick => {
-          const nextTick = prevTick + 1;
-          const beat = (nextTick % beatsPerMeasure) + 1;
-          playClick(beat === 1);
-          return nextTick;
-        });
-      }, 1000);
-    } else {
-      setCurrentTick(-1);
-    }
-    return () => clearInterval(interval);
-  }, [mode, metronomeOn, activeMelodyType]);
-
-  const formatTime = (sec) => `${Math.floor(sec / 60).toString().padStart(2, '0')}:${(sec % 60).toString().padStart(2, '0')}`;
-  const staffWidth = mode === 'quiz' ? '100%' : (mode === 'learn' ? `${learnData.totalWidth}px` : `${activeMelodyData.totalWidth}px`);
+  const formatTime = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
   return (
-    <div style={{ maxWidth: '700px', margin: '20px auto', padding: '15px', fontFamily: 'sans-serif', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '15px', boxShadow: '0 5px 15px rgba(0,0,0,0.1)' }}>
-      <h2 style={{ color: '#333', marginTop: 0, marginBottom: '20px' }}>🎵 Solfeđo Master 🎵</h2>
-      
-      <HeaderButtons clef={clef} setClef={setClef} mode={mode} setMode={setMode} resetQuiz={resetQuiz} />
+    <div style={{ maxWidth: '750px', margin: '20px auto', padding: '15px', fontFamily: 'sans-serif', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '15px', boxShadow: '0 5px 15px rgba(0,0,0,0.1)' }}>
+      <h2>🎵 Solfeđo Master 🎵</h2>
 
-      {/* 🎯 KVIZ INTERFEJS */}
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
+          <button aria-label="Violinski" onClick={() => setClef('treble')} style={{ padding: '8px 15px', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: clef === 'treble' ? '#673AB7' : '#e0e0e0', color: clef === 'treble' ? '#fff' : '#333', cursor: 'pointer' }}>𝄞 Violinski</button>
+          <button aria-label="Bas" onClick={() => setClef('bass')} style={{ padding: '8px 15px', fontWeight: 'bold', borderRadius: '20px', border: 'none', backgroundColor: clef === 'bass' ? '#009688' : '#e0e0e0', color: clef === 'bass' ? '#fff' : '#333', cursor: 'pointer' }}>𝄢 Bas ključ</button>
+        </div>
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '8px' }}>
+          <button onClick={() => setMode('learn')} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'learn' ? '#FF9800' : '#ddd', color: mode === 'learn' ? 'white' : '#333', cursor: 'pointer' }}>📖 Učenje</button>
+          <button onClick={() => { setMode('quiz'); setQuizActive(false); }} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'quiz' ? '#007BFF' : '#ddd', color: mode === 'quiz' ? 'white' : '#333', cursor: 'pointer' }}>🎯 Kviz</button>
+          <button onClick={() => setMode('melody')} style={{ padding: '10px 15px', fontWeight: 'bold', borderRadius: '8px', border: 'none', backgroundColor: mode === 'melody' ? '#4CAF50' : '#ddd', color: mode === 'melody' ? 'white' : '#333', cursor: 'pointer' }}>🎼 Melodije</button>
+        </div>
+      </div>
+
+      {/* Kviz skor i timer */}
       {mode === 'quiz' && (
         <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', margin: '15px 0' }}>
           <div style={{ fontSize: '18px' }}>Skor: <strong style={{ color: '#007BFF' }}>{correctCount}/{totalCount}</strong></div>
@@ -348,65 +468,103 @@ export default function ClefApp() {
         </div>
       )}
 
-      {/* 🎼 MELODIJE INTERFEJS */}
+      {/* Melodije kontrole */}
       {mode === 'melody' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', margin: '10px 0' }}>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            <button aria-label="2/4 takt" onClick={() => { setActiveMelodyType('2/4'); setMetronomeOn(false); setMelodyIndex(0); }} style={{ padding: '8px 15px', backgroundColor: activeMelodyType === '2/4' ? '#333' : '#eee', color: activeMelodyType === '2/4' ? '#fff' : '#333', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>2/4 Takt</button>
-            <button aria-label="3/4 takt" onClick={() => { setActiveMelodyType('3/4'); setMetronomeOn(false); setMelodyIndex(0); }} style={{ padding: '8px 15px', backgroundColor: activeMelodyType === '3/4' ? '#333' : '#eee', color: activeMelodyType === '3/4' ? '#fff' : '#333', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>3/4 Takt</button>
-            <button aria-label="Nova melodija" onClick={() => { setMetronomeOn(false); setMelodyIndex(prev => (prev + 1) % MELODIES[clef][activeMelodyType].length); }} style={{ padding: '8px 15px', backgroundColor: '#9C27B0', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>🎲 Nova</button>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+            <label>BPM: {bpm}</label>
+            <input type="range" min="40" max="120" value={bpm} onChange={e => setBpm(Number(e.target.value))} />
           </div>
-          <button aria-label="Metronom" onClick={() => setMetronomeOn(!metronomeOn)} style={{ padding: '10px 25px', backgroundColor: metronomeOn ? '#E53935' : '#4CAF50', color: 'white', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer' }}>
-            {metronomeOn ? '⏹ Zaustavi Metronom' : '▶ Pokreni Metronom'}
-          </button>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={() => setMetronomeOn(!metronomeOn)} style={{ padding: '10px 25px', backgroundColor: metronomeOn ? '#E53935' : '#4CAF50', color: 'white', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              {metronomeOn ? '⏹ Zaustavi Metronom' : '▶ Slušaj Ritam'}
+            </button>
+            <button onClick={toggleParlato} style={{ padding: '10px 25px', backgroundColor: parlatoActive ? '#FF9800' : '#9E9E9E', color: 'white', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+              🖐️ Parlato Trener {parlatoActive ? '(Završi)' : ''}
+            </button>
+          </div>
         </div>
       )}
 
-      {/* GLAVNI NOTNI SISTEM */}
-      <Staff clef={clef} width={staffWidth}>
-        {/* Mod 1: Učenje */}
-        {mode === 'learn' && learnData.elements.map(el => (
-          <Note key={el.id} left={el.left} pos={el.pos} name={el.name} showLabel={true} ledger={el.ledger} onClick={() => playTone(el.freq)} />
-        ))}
-
-        {/* Mod 2: Kviz */}
+      {/* Notni sistem */}
+      <div style={{ backgroundColor: '#fff', borderRadius: '10px', padding: '10px', margin: '20px 0', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.05)' }}>
+        {mode === 'learn' && <VexStaff clef={clef} elements={SCALE_RHYTHMIC} width={700} highlightIndex={-1} />}
         {mode === 'quiz' && currentNote && (
-          <div style={{ position: 'absolute', left: '50%', top: `${(currentNote.position * 15) - 8}px`, width: '20px', height: '16px', backgroundColor: feedback.isCorrect ? '#4CAF50' : '#111', borderRadius: '50%', transform: 'translateX(-50%) rotate(-15deg)', transition: 'top 0.3s ease, background-color 0.3s ease' }}>
-            {currentNote.ledger && <div style={{ position: 'absolute', top: '50%', left: '-30%', width: '160%', height: '2px', backgroundColor: '#111', transform: 'translateY(-50%)' }}></div>}
-          </div>
+          <VexStaff clef={clef} elements={[{ type: 'note', name: currentNote.name, duration: 'q' }]} width={150} highlightIndex={-1} />
         )}
-
-        {/* Mod 3: Melodije sa metronom "shadowing" efektom */}
         {mode === 'melody' && (
-          <>
-            <div style={{ position: 'absolute', left: '10px', top: '30px', fontSize: '30px', fontWeight: 'bold', lineHeight: '30px', color: '#666', display: 'flex', flexDirection: 'column' }}>
-              <span>{activeMelodyType === '2/4' ? '2' : '3'}</span><span>4</span>
-            </div>
-            {activeMelodyData.elements.map(el => {
-              if (el.type === 'barline') return <div key={el.id} style={{ position: 'absolute', width: '2px', height: '120px', backgroundColor: '#333', top: 0, left: `${el.left}px` }}></div>;
-              if (el.type === 'doublebar') return <React.Fragment key={el.id}><div style={{ position: 'absolute', width: '2px', height: '120px', backgroundColor: '#333', top: 0, left: `${el.left}px` }}></div><div style={{ position: 'absolute', width: '4px', height: '120px', backgroundColor: '#333', top: 0, left: `${el.left + 5}px` }}></div></React.Fragment>;
-              
-              const showLabel = currentTick > -1 && el.noteIndex < currentTick;
-              return <Note key={el.id} left={el.left} pos={el.pos} name={el.name} showLabel={showLabel} ledger={el.ledger} onClick={() => playTone(el.freq)} />;
-            })}
-          </>
+          <VexStaff
+            clef={clef}
+            elements={currentMelody}
+            width={700}
+            highlightIndex={metronomeOn ? currentBeatIdx : -1}
+          />
         )}
-      </Staff>
+      </div>
 
-      {/* TASTATURA ZA KVIZ */}
+      {/* Interaktivna dugmad za učenje */}
+      {mode === 'learn' && (
+        <div style={{ marginTop: '15px' }}>
+          <p style={{ marginBottom: '10px', fontWeight: 'bold' }}>Klikni na ime note da čuješ ton:</p>
+          <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            {learningNotes.map(note => (
+              <button
+                key={note.name}
+                onClick={() => handleLearnClick(note)}
+                style={{
+                  padding: '12px 20px',
+                  fontSize: '18px',
+                  fontWeight: 'bold',
+                  color: '#fff',
+                  backgroundColor: activeLearnNote === note.name ? '#E53935' : '#FF9800',
+                  border: 'none',
+                  borderRadius: '10px',
+                  cursor: 'pointer',
+                  boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                  transition: 'background-color 0.2s ease'
+                }}
+              >
+                {note.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Tastatura za kviz */}
       {mode === 'quiz' && (
         <>
           <div style={{ minHeight: '30px', marginBottom: '15px', fontSize: '18px', fontWeight: 'bold', color: feedback.isCorrect ? '#4CAF50' : '#E53935' }}>
-            {feedback.show ? feedback.text : 'Koja je ovo nota? (Tajmer kreće na klik)'}
+            {feedback.show ? feedback.text : 'Koja je ovo nota? (Klikni dugme)'}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            {SOLFEGIO.map((solf) => (
-              <button key={solf} aria-label={`Nota ${solf}`} onClick={() => handleGuess(solf)} disabled={feedback.isCorrect} style={{ padding: '12px 10px', fontSize: '16px', fontWeight: 'bold', color: 'white', border: 'none', borderRadius: '8px', flex: '1 1 calc(30% - 10px)', minWidth: '70px', backgroundColor: feedback.isCorrect ? '#ccc' : '#007BFF', cursor: feedback.isCorrect ? 'not-allowed' : 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
+            {SOLFEGIO.map(solf => (
+              <button key={solf} onClick={() => handleGuess(solf)} disabled={feedback.isCorrect}
+                style={{ padding: '12px 10px', fontSize: '16px', fontWeight: 'bold', color: 'white', border: 'none', borderRadius: '8px', flex: '1 1 calc(30% - 10px)', minWidth: '70px', backgroundColor: feedback.isCorrect ? '#ccc' : '#007BFF', cursor: feedback.isCorrect ? 'not-allowed' : 'pointer' }}>
                 {solf}
               </button>
             ))}
           </div>
         </>
+      )}
+
+      {/* Parlato feedback */}
+      {parlatoActive && (
+        <div style={{ marginTop: '10px', padding: '15px', backgroundColor: '#FFF3E0', borderRadius: '8px', border: '2px dashed #FF9800' }}>
+          <p style={{ margin: '0 0 10px 0', fontSize: '18px' }}><strong>🔴 Snimanje u toku!</strong></p>
+          <p style={{ margin: 0 }}>Tapši <strong>Space (razmaknicu)</strong> u ritmu nota. Snimanje će se automatski zaustaviti.</p>
+          <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#FF9800' }}>Udaraca: {tapTimes.length}</p>
+        </div>
+      )}
+
+      {!parlatoActive && parlatoResults && (
+        <div style={{ marginTop: '10px', padding: '15px', backgroundColor: '#E8F5E9', borderRadius: '8px', border: '2px solid #4CAF50' }}>
+          <h3 style={{ margin: '0 0 10px 0', color: '#2E7D32' }}>Tvoja ocena: {parlatoResults.scorePercentage}%</h3>
+          <p style={{ margin: '5px 0' }}>✅ Savršeno na vreme: <strong>{parlatoResults.correct}</strong></p>
+          <p style={{ margin: '5px 0' }}>🐇 Požurila si na: <strong>{parlatoResults.early}</strong> nota</p>
+          <p style={{ margin: '5px 0' }}>🐢 Zakasnila si na: <strong>{parlatoResults.late}</strong> nota</p>
+          <p style={{ margin: '5px 0', color: '#D32F2F' }}>❌ Promašeno: <strong>{parlatoResults.missed}</strong> nota</p>
+        </div>
       )}
     </div>
   );
