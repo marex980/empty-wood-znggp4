@@ -167,7 +167,7 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
       }
 
       let staveElement;
-      if (el.type === 'note') {
+if (el.type === 'note') {
         const noteObj = clef === 'bass'
           ? BASS_NOTES.find(n => n.name === el.name)
           : TREBLE_NOTES.find(n => n.name === el.name);
@@ -175,6 +175,7 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
 
         const vfDuration = durationMap[el.duration] || 'q';
         staveElement = new VF.StaveNote({
+          clef: clef === 'bass' ? 'bass' : 'treble', // <-- OVO JE FALILO!
           keys: [noteObj.vexKey],
           duration: vfDuration
         });
@@ -187,11 +188,11 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
       } else if (el.type === 'rest') {
         const vfRest = restDurationMap[el.duration] || 'qr';
         staveElement = new VF.StaveNote({
-          keys: ['b/4'],         // dummy key, pauza se ionako ne vidi
+          clef: clef === 'bass' ? 'bass' : 'treble', // <-- DODATO I ZA PAUZE (da bi bile centrirane)
+          keys: ['b/4'],
           duration: vfRest
         });
       }
-
       if (highlightIndex === globalIdx && staveElement) {
         staveElement.setStyle({ fillStyle: '#E53935', strokeStyle: '#E53935' });
       }
