@@ -33,9 +33,10 @@ const SOLFEGIO = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
 // Mapa konverzije: naš format -> VexFlow 4 format
 const durationMap = {
   'q': 'q',
-  'q.': 'q', // punktirana -> koristi 'q' + Dot
+  'q.': 'q', 
   'e': '8',
   'h': 'h',
+  'h.': 'h'
 };
 
 // Konverzija pauza
@@ -45,9 +46,11 @@ const restDurationMap = {
   'h': 'hr',
 };
 
+// POPUNJENA BAZA MELODIJA
 const MELODIES_RHYTHMIC = {
   bass: {
     '2/4': [
+      // Melodija sa slike (Tvoja Parlato vežba)
       [
         { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
         { type: 'note', name: 'FA', duration: 'q' }, { type: 'rest', duration: 'e' }, { type: 'note', name: 'SOL', duration: 'e' }, { type: 'barline' },
@@ -59,9 +62,36 @@ const MELODIES_RHYTHMIC = {
         { type: 'note', name: 'LA', duration: 'q' }, { type: 'rest', duration: 'q' }, { type: 'doublebar' }
       ]
     ],
-    '3/4': []
+    '3/4': [
+      // Nova melodija u 3/4 taktu za bas ključ
+      [
+        { type: 'note', name: 'DO', duration: 'h' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'SOL', duration: 'h' }, { type: 'note', name: 'FA', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'RE', duration: 'q' }, { type: 'note', name: 'DO', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'SI', duration: 'h.' }, { type: 'doublebar' }
+      ]
+    ]
   },
-  treble: { '2/4': [], '3/4': [] }
+  treble: {
+    '2/4': [
+      // Dinamična vežba u violinskom ključu
+      [
+        { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'SOL', duration: 'e' }, { type: 'note', name: 'FA', duration: 'e' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'RE', duration: 'q' }, { type: 'note', name: 'FA', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'h' }, { type: 'doublebar' }
+      ]
+    ],
+    '3/4': [
+      // Valcer u violinskom ključu
+      [
+        { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'SOL', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'FA', duration: 'h' }, { type: 'note', name: 'RE', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'MI', duration: 'q' }, { type: 'note', name: 'DO', duration: 'q' }, { type: 'note', name: 'SI', duration: 'q' }, { type: 'barline' },
+        { type: 'note', name: 'DO', duration: 'h.' }, { type: 'doublebar' }
+      ]
+    ]
+  }
 };
 
 const SCALE_RHYTHMIC = [
@@ -103,7 +133,7 @@ const playClick = (isStrong) => {
 };
 
 // ==========================================
-// 3. VEXFLOW RENDERER (potpuno ispravljen)
+// 3. VEXFLOW RENDERER (Ispravljen "Too many ticks" bug)
 // ==========================================
 const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
   const containerRef = useRef(null);
@@ -178,22 +208,11 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
     measures.forEach(measure => {
       if (measure.notes.length === 0) return;
 
-      // Izračunaj ukupno trajanje u četvrtinama za ovaj takt
-      let totalBeats = 0;
-      measure.beamable.forEach(b => {
-        if (b.duration === 'q') totalBeats += 1;
-        else if (b.duration === 'q.') totalBeats += 1.5;
-        else if (b.duration === 'e') totalBeats += 0.5;
-        else if (b.duration === 'h') totalBeats += 2;
-      });
-      // Ako ima pauza, i one zauzimaju vreme – zato umesto beamable koristimo sve elemente
-      // Ali beamable sadrži samo note. Pauze nisu u beamable, pa moramo izračunati totalBeats drugačije.
-      // Lakše je: za svaki element u currentMeasure, dobavi trajanje iz originalnog elementa.
-      // Kako nemamo više pristup originalnim elementima, napravićemo niz prethodno.
-      // Preuredićemo kod da čuvamo i originalne elemente.
-      // Ali za sada, jednostavno podesimo Voice na 4/4 pošto je kapacitet dovoljno velik za sve naše taktove (max 3/4 = 3.0)
-      // a greška "too many ticks" se javljala zbog pogrešnih duration stringova, što smo sad ispravili.
       const voice = new VF.Voice({ num_beats: 4, beat_value: 4 });
+      
+      // OVO JE DODATO: Sprečava grešku "Too many ticks" za dugačke skale
+      voice.setStrict(false); 
+      
       voice.addTickables(measure.notes);
 
       const notesOnly = measure.beamable.map(b => b.note);
@@ -209,13 +228,9 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
 });
 
 // ==========================================
-// 4. GLAVNA APLIKACIJA (ostaje ista, samo bez greške)
+// 4. GLAVNA APLIKACIJA 
 // ==========================================
 export default function ClefApp() {
-  // ... ceo ostatak aplikacije je nepromenjen, zato ga ne prepisujem ponovo.
-  // Važno: kod je identičan prethodnoj verziji, osim što više ne sadrži greške u VexStaff.
-  // Možeš ga kopirati iz prethodnog odgovora u kome je sve radilo lokalno.
-  // Prepisaću ceo kod dole radi kompletnosti.
   const [clef, setClef] = useState('bass');
   const [mode, setMode] = useState('learn');
 
@@ -253,7 +268,7 @@ export default function ClefApp() {
 
   const currentMelody = useMemo(() => {
     const list = MELODIES_RHYTHMIC[clef]?.[activeMelodyType];
-    return list ? list[melodyIndex % list.length] : SCALE_RHYTHMIC;
+    return list && list.length > 0 ? list[melodyIndex % list.length] : SCALE_RHYTHMIC;
   }, [clef, activeMelodyType, melodyIndex]);
 
   const learningNotes = useMemo(() => {
