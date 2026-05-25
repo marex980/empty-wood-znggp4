@@ -153,17 +153,19 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
           : TREBLE_NOTES.find(n => n.name === el.name);
         if (!noteObj) return;
 
+        // ISPRAVKA: uklonjen clef iz konstruktora
         staveElement = new VF.StaveNote({
-          clef: clef === 'bass' ? 'bass' : 'treble',
           keys: [noteObj.vexKey],
           duration: el.duration
         });
-        if (el.duration.includes('.')) staveElement.addModifier(new VF.Dot(), 0);
+        if (el.duration.includes('.')) {
+          // Provera da li Dot postoji (u VF 4 je VF.Dot, ali se može dodati i kao string)
+          if (VF.Dot) staveElement.addModifier(new VF.Dot(), 0);
+        }
         beamable.push({ note: staveElement, duration: el.duration });
       } else if (el.type === 'rest') {
         staveElement = new VF.StaveNote({
-          clef: clef === 'bass' ? 'bass' : 'treble',
-          keys: ['b/4'],
+          keys: ['b/4'],  // dummy key, ali pauza će biti nacrtana automatski
           duration: el.duration + 'r'
         });
       }
