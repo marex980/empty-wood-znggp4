@@ -291,26 +291,34 @@ export default function ClefApp() {
 
   const beatDurationMs = 60000 / bpm;
 
-  const timePoints = useMemo(() => {
+const timePoints = useMemo(() => {
     const points = [];
     let currentTime = 0;
-    currentMelody.forEach((el, idx) => {
+    let noteIndex = 0; // DODATO: Nezavisan brojač koji broji samo note i pauze
+
+    currentMelody.forEach((el) => {
+      // Ako je linija takta, preskoči je i NE povećavaj brojač
       if (el.type === 'barline' || el.type === 'doublebar') return;
+      
       const durStr = el.duration || 'q';
       let relativeDur = 1;
       if (durStr.startsWith('h')) relativeDur = 2;
       else if (durStr.startsWith('q')) relativeDur = 1;
       else if (durStr.startsWith('e')) relativeDur = 0.5;
       if (durStr.includes('.')) relativeDur *= 1.5;
+      
       points.push({
-        idx,
+        idx: noteIndex, // KORISTIMO NAŠ NOVI BROJAČ
         start: currentTime,
         end: currentTime + relativeDur * beatDurationMs,
         isRest: el.type === 'rest',
         freq: el.type === 'note' ? (noteMap.get(el.name)?.freq || null) : null
       });
+      
       currentTime += relativeDur * beatDurationMs;
+      noteIndex++; // Povećaj brojač tek kad smo uspešno dodali notu ili pauzu
     });
+    
     return { points, totalTime: currentTime };
   }, [currentMelody, beatDurationMs, noteMap]);
 
