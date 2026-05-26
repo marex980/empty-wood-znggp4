@@ -264,6 +264,7 @@ export default function ClefApp() {
   const [composerTitle, setComposerTitle] = useState('Moja prva kompozicija');
   const [composerDuration, setComposerDuration] = useState('q'); // Trenutno izabrano trajanje
   const [composerAccidental, setComposerAccidental] = useState(''); // '' | '#' | 'b' | 'n'
+  const [composerArtic, setComposerArtic] = useState('');
   const [isSaving, setIsSaving] = useState(false);
 
   const timeoutRef = useRef(null);
