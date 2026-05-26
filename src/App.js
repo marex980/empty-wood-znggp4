@@ -188,6 +188,11 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
         if (el.accidental) {
           staveElement.addModifier(new VF.Accidental(el.accidental), 0);
         }
+        if (el.articulation === 'staccato') {
+          staveElement.addModifier(new VF.Articulation('a.').setPosition(3), 0);
+        } else if (el.articulation === 'accent') {
+          staveElement.addModifier(new VF.Articulation('a>').setPosition(3), 0);
+        }
 
         currentMeasureNotesForBeams.push(staveElement);
       } else if (el.type === 'rest') {
@@ -594,6 +599,13 @@ export default function ClefApp() {
             <button onClick={() => setComposerAccidental('b')} style={btnStyle(composerAccidental === 'b')}>♭ Snizilica</button>
             <button onClick={() => setComposerAccidental('n')} style={btnStyle(composerAccidental === 'n')}>♮ Razrešnica</button>
           </div>
+
+        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
+          <span style={{ fontWeight: 'bold' }}>Artikulacija:</span>
+          <button onClick={() => setComposerArtic('')} style={btnStyle(composerArtic === '')}>Bez</button>
+          <button onClick={() => setComposerArtic('staccato')} style={btnStyle(composerArtic === 'staccato')}>Stakato (•)</button>
+          <button onClick={() => setComposerArtic('accent')} style={btnStyle(composerArtic === 'accent')}>Akcenat (>)</button>
+        </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' }}>
             {SOLFEGIO.map(solf => (
