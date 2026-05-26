@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Vex from 'vexflow';
-import { collection, addDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, doc, updateDoc } from 'firebase/firestore';
 import { db } from './firebase'; 
 
 const VF = Vex.Flow;
@@ -182,17 +182,12 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
           duration: vfDuration
         });
 
-        // Punktirani ritam (tačka pored note)
-        if (el.duration.includes('.')) {
-          staveElement.addModifier(new VF.Dot(), 0);
-        }
+        if (el.duration.includes('.')) staveElement.addModifier(new VF.Dot(), 0);
         
-        // Podrška za povisilice i snizilice
         if (el.accidental) {
           staveElement.addModifier(new VF.Accidental(el.accidental), 0);
         }
 
-        // Podrška za artikulaciju (Stakato iznad, Akcenat iznad)
         if (el.articulation === 'staccato') {
           staveElement.addModifier(new VF.Articulation('a.').setPosition(3), 0);
         } else if (el.articulation === 'accent') {
@@ -264,13 +259,18 @@ export default function ClefApp() {
   const [bpm, setBpm] = useState(60);
   const [activeLearnNote, setActiveLearnNote] = useState(null);
 
-  // KOMPOZITOR STATE
+  // KOMPOZITOR & FIREBASE STATE
   const [composerNotes, setComposerNotes] = useState([]);
-  const [composerTitle, setComposerTitle] = useState('Moja prva kompozicija');
+  const [composerTitle, setComposerTitle] = useState('Moja nova kompozicija');
   const [composerDuration, setComposerDuration] = useState('q');
   const [composerAccidental, setComposerAccidental] = useState('');
-  const [composerArtic, setComposerArtic] = useState(''); // Artikulacija
+  const [composerArtic, setComposerArtic] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+
+  // Novi state za melodije iz baze
+  const [firebaseMelodies, setFirebaseMelodies] = useState([]);
+  const [selectedCustomMelody, setSelectedCustomMelody] = useState(null);
+  const [editingMelodyId, setEditingMelodyId] = useState(null);
 
   const timeoutRef = useRef(null);
   const learnTimeoutRef = useRef(null);
@@ -278,11 +278,35 @@ export default function ClefApp() {
   const activeNotesDb = useMemo(() => clef === 'bass' ? BASS_NOTES : TREBLE_NOTES, [clef]);
   const noteMap = useMemo(() => new Map(activeNotesDb.map(n => [n.name, n])), [activeNotesDb]);
 
+  // Učitavanje iz baze
+  const fetchMelodies = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "melodies"));
+      const fetched = [];
+      querySnapshot.forEach((doc) => {
+        fetched.push({ id: doc.id, ...doc.data() });
+      });
+      setFirebaseMelodies(fetched);
+    } catch (e) {
+      console.error("Greška pri učitavanju melodija:", e);
+    }
+  };
+
+  useEffect(() => {
+    fetchMelodies();
+  }, []);
+
   const currentMelody = useMemo(() => {
     if (mode === 'composer') return composerNotes;
+    
+    // Ako smo izabrali melodiju iz Firebase-a
+    if (activeMelodyType === 'custom' && selectedCustomMelody) {
+      return selectedCustomMelody.notes;
+    }
+
     const list = MELODIES_RHYTHMIC[clef]?.[activeMelodyType];
     return list && list.length > 0 ? list[melodyIndex % list.length] : SCALE_RHYTHMIC;
-  }, [clef, activeMelodyType, melodyIndex, mode, composerNotes]);
+  }, [clef, activeMelodyType, melodyIndex, mode, composerNotes, selectedCustomMelody]);
 
   const learningNotes = useMemo(() => {
     return SCALE_RHYTHMIC.filter(el => el.type === 'note').map(el => ({ name: el.name, freq: noteMap.get(el.name)?.freq }));
@@ -486,12 +510,11 @@ export default function ClefApp() {
     }
   };
 
-  // Funkcije Kompozitora
+  // Kompozitor akcije
   const addComposerNote = (noteName) => {
     const noteObj = noteMap.get(noteName);
     if (noteObj) playTone(noteObj.freq);
     
-    // OVO JE ISPRAVLJENO: Sada beleži i artikulaciju!
     setComposerNotes(prev => [...prev, { 
       type: 'note', 
       name: noteName, 
@@ -509,6 +532,10 @@ export default function ClefApp() {
     setComposerNotes(prev => [...prev, { type: 'barline' }]);
   };
 
+  const addComposerDoubleBarline = () => {
+    setComposerNotes(prev => [...prev, { type: 'doublebar' }]);
+  };
+
   const removeLastComposerElement = () => {
     setComposerNotes(prev => prev.slice(0, -1));
   };
@@ -520,15 +547,31 @@ export default function ClefApp() {
     }
     setIsSaving(true);
     try {
-      await addDoc(collection(db, "melodies"), {
-        title: composerTitle,
-        clef: clef,
-        notes: composerNotes,
-        createdAt: new Date().toISOString()
-      });
-      alert("Melodija je uspešno sačuvana u oblaku! ☁️");
+      if (editingMelodyId) {
+        // Ažuriranje postojeće
+        const melodyRef = doc(db, "melodies", editingMelodyId);
+        await updateDoc(melodyRef, {
+          title: composerTitle,
+          clef: clef,
+          notes: composerNotes
+        });
+        alert("Melodija je uspešno ažurirana! ☁️");
+      } else {
+        // Kreiranje nove
+        await addDoc(collection(db, "melodies"), {
+          title: composerTitle,
+          clef: clef,
+          notes: composerNotes,
+          createdAt: new Date().toISOString()
+        });
+        alert("Melodija je uspešno sačuvana u oblaku! ☁️");
+      }
+      
       setComposerNotes([]);
       setComposerTitle('Moja nova kompozicija');
+      setEditingMelodyId(null);
+      fetchMelodies(); // Osvežava listu kako bi se nova melodija odmah pojavila!
+      
     } catch (e) {
       console.error("Greška pri čuvanju:", e);
       alert("Greška pri čuvanju! Proveri internet konekciju i Firebase podešavanja.");
@@ -570,11 +613,40 @@ export default function ClefApp() {
 
       {mode === 'melody' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', margin: '10px 0' }}>
+          
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button onClick={() => { setActiveMelodyType('2/4'); setMetronomeOn(false); setMelodyIndex(0); }} style={btnStyle(activeMelodyType === '2/4')}>2/4 Takt</button>
             <button onClick={() => { setActiveMelodyType('3/4'); setMetronomeOn(false); setMelodyIndex(0); }} style={btnStyle(activeMelodyType === '3/4')}>3/4 Takt</button>
             <button onClick={() => { setMetronomeOn(false); setMelodyIndex(prev => prev + 1); }} style={{ padding: '8px 15px', backgroundColor: '#9C27B0', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>🎲 Nova melodija</button>
           </div>
+
+          {/* MENI ZA TVOJE MELODIJE IZ BAZE */}
+          {firebaseMelodies.length > 0 && (
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '5px', padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
+              <span style={{ fontWeight: 'bold', alignSelf: 'center', color: '#1565c0' }}>Izaberi iz baze:</span>
+              <select 
+                style={{ padding: '8px', borderRadius: '5px', border: '1px solid #90caf9', fontWeight: 'bold' }}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  if(!id) {
+                    setActiveMelodyType('2/4'); 
+                    return;
+                  }
+                  const mel = firebaseMelodies.find(m => m.id === id);
+                  if(mel) {
+                    setActiveMelodyType('custom');
+                    setSelectedCustomMelody(mel);
+                    setClef(mel.clef || 'bass');
+                    setMetronomeOn(false);
+                  }
+                }}
+              >
+                <option value="">-- Moje melodije --</option>
+                {firebaseMelodies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+              </select>
+            </div>
+          )}
+
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <label style={{ fontWeight: 'bold' }}>BPM: {bpm}</label>
             <input type="range" min="40" max="120" value={bpm} onChange={e => setBpm(Number(e.target.value))} />
@@ -590,9 +662,39 @@ export default function ClefApp() {
         </div>
       )}
 
-      {/* NOVI INTERFEJS ZA KOMPOZITORA */}
+      {/* INTERFEJS ZA KOMPOZITORA */}
       {mode === 'composer' && (
         <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '10px', border: '2px solid #E91E63', marginBottom: '15px' }}>
+          
+          {/* UČITAVANJE ZA IZMENU */}
+          {firebaseMelodies.length > 0 && (
+            <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#fce4ec', borderRadius: '8px' }}>
+              <select 
+                style={{ padding: '8px', borderRadius: '5px', border: '1px solid #f48fb1', fontWeight: 'bold', width: '80%', marginBottom: '10px' }}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  if(!id) return;
+                  const mel = firebaseMelodies.find(m => m.id === id);
+                  if(mel) {
+                    setComposerTitle(mel.title);
+                    setClef(mel.clef || 'bass');
+                    setComposerNotes(mel.notes || []);
+                    setEditingMelodyId(mel.id);
+                  }
+                }}
+              >
+                <option value="">-- Učitaj melodiju za izmenu --</option>
+                {firebaseMelodies.map(m => <option key={m.id} value={m.id}>{m.title}</option>)}
+              </select>
+              <br/>
+              {editingMelodyId && (
+                <button onClick={() => { setEditingMelodyId(null); setComposerNotes([]); setComposerTitle('Moja nova kompozicija'); }} style={{ padding: '5px 10px', backgroundColor: '#E53935', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                  ✖ Prekini izmenu
+                </button>
+              )}
+            </div>
+          )}
+
           <input type="text" value={composerTitle} onChange={e => setComposerTitle(e.target.value)} style={{ width: '80%', padding: '10px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', marginBottom: '15px', borderRadius: '8px', border: '1px solid #ccc' }} placeholder="Unesi naziv kompozicije..." />
           
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
@@ -612,12 +714,12 @@ export default function ClefApp() {
             <button onClick={() => setComposerAccidental('n')} style={btnStyle(composerAccidental === 'n')}>♮ Razrešnica</button>
           </div>
 
-        <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
-          <span style={{ fontWeight: 'bold' }}>Artikulacija:</span>
-          <button onClick={() => setComposerArtic('')} style={btnStyle(composerArtic === '')}>Bez</button>
-          <button onClick={() => setComposerArtic('staccato')} style={btnStyle(composerArtic === 'staccato')}>Stakato (•)</button>
-          <button onClick={() => setComposerArtic('accent')} style={btnStyle(composerArtic === 'accent')}>Akcenat {'>'}</button>
-        </div>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '15px' }}>
+            <span style={{ fontWeight: 'bold' }}>Artikulacija:</span>
+            <button onClick={() => setComposerArtic('')} style={btnStyle(composerArtic === '')}>Bez</button>
+            <button onClick={() => setComposerArtic('staccato')} style={btnStyle(composerArtic === 'staccato')}>Stakato (•)</button>
+            <button onClick={() => setComposerArtic('accent')} style={btnStyle(composerArtic === 'accent')}>Akcenat {'>'}</button>
+          </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' }}>
             {SOLFEGIO.map(solf => (
@@ -625,11 +727,16 @@ export default function ClefApp() {
             ))}
             <button onClick={addComposerRest} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#607D8B', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>𝄽 Pauza</button>
             <button onClick={addComposerBarline} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>| Takt</button>
+            
+            {/* NOVO DUGME ZA KRAJ MELODIJE */}
+            <button onClick={addComposerDoubleBarline} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#111', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>|| Kraj</button>
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px' }}>
             <button onClick={removeLastComposerElement} disabled={composerNotes.length === 0} style={{ padding: '10px 15px', fontWeight: 'bold', backgroundColor: '#FF9800', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>⏪ Obriši poslednje</button>
-            <button onClick={saveMelodyToFirebase} disabled={isSaving || composerNotes.length === 0} style={{ padding: '10px 15px', fontWeight: 'bold', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>{isSaving ? '⏳ Snimanje...' : '☁️ Snimi melodiju'}</button>
+            <button onClick={saveMelodyToFirebase} disabled={isSaving || composerNotes.length === 0} style={{ padding: '10px 15px', fontWeight: 'bold', backgroundColor: '#4CAF50', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+              {isSaving ? '⏳ Snimanje...' : (editingMelodyId ? '☁️ Ažuriraj melodiju' : '☁️ Snimi melodiju')}
+            </button>
           </div>
         </div>
       )}
