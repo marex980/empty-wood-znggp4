@@ -130,7 +130,7 @@ const playClick = (isStrong) => {
 // ==========================================
 // 3. VEXFLOW RENDERER
 // ==========================================
-const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
+const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignature }) => {
   const containerRef = useRef(null);
 
   useEffect(() => {
@@ -143,6 +143,7 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
 
     const stave = new VF.Stave(10, 30, width - 20)
       .addClef(clef === 'bass' ? 'bass' : 'treble')
+      .addTimeSignature(timeSignature || '2/4')
       .setContext(context)
       .draw();
 
@@ -265,6 +266,7 @@ export default function ClefApp() {
   const [composerDuration, setComposerDuration] = useState('q');
   const [composerAccidental, setComposerAccidental] = useState('');
   const [composerArtic, setComposerArtic] = useState('');
+  const [composerTimeSig, setComposerTimeSig] = useState('2/4');
   const [isSaving, setIsSaving] = useState(false);
 
   // Novi state za melodije iz baze
@@ -376,10 +378,16 @@ export default function ClefApp() {
         setCurrentBeatIdx(-1);
       }
 
+// Logika za pametni klik metronoma na osnovu takta
       const currentBeat = Math.floor(now / beatDurationMs);
       if (currentBeat !== lastBeatNumber) {
         lastBeatNumber = currentBeat;
-        const isStrong = currentBeat % 4 === 0;
+        
+        // Čitanje prvog broja iz takta (npr. '3' iz '3/4')
+        const activeSig = (mode === 'composer') ? composerTimeSig : (activeMelodyType === 'custom' ? (selectedCustomMelody?.timeSignature || '2/4') : activeMelodyType);
+        const beatsPerMeasure = parseInt(activeSig.split('/')[0]) || 4;
+        
+        const isStrong = currentBeat % beatsPerMeasure === 0;
         playClick(isStrong);
       }
     }, 30);
@@ -553,6 +561,7 @@ export default function ClefApp() {
         await updateDoc(melodyRef, {
           title: composerTitle,
           clef: clef,
+          timeSignature: composerTimeSig,
           notes: composerNotes
         });
         alert("Melodija je uspešno ažurirana! ☁️");
@@ -561,6 +570,7 @@ export default function ClefApp() {
         await addDoc(collection(db, "melodies"), {
           title: composerTitle,
           clef: clef,
+          timeSignature: composerTimeSig,
           notes: composerNotes,
           createdAt: new Date().toISOString()
         });
@@ -637,6 +647,7 @@ export default function ClefApp() {
                     setActiveMelodyType('custom');
                     setSelectedCustomMelody(mel);
                     setClef(mel.clef || 'bass');
+                    setComposerTimeSig(mel.timeSignature || '2/4');
                     setMetronomeOn(false);
                   }
                 }}
@@ -678,6 +689,7 @@ export default function ClefApp() {
                   if(mel) {
                     setComposerTitle(mel.title);
                     setClef(mel.clef || 'bass');
+                    setComposerTimeSig(mel.timeSignature || '2/4');
                     setComposerNotes(mel.notes || []);
                     setEditingMelodyId(mel.id);
                   }
@@ -696,7 +708,15 @@ export default function ClefApp() {
           )}
 
           <input type="text" value={composerTitle} onChange={e => setComposerTitle(e.target.value)} style={{ width: '80%', padding: '10px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', marginBottom: '15px', borderRadius: '8px', border: '1px solid #ccc' }} placeholder="Unesi naziv kompozicije..." />
-          
+
+          {/* DUGMIĆI ZA TAKT */}
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
+            <span style={{ fontWeight: 'bold', alignSelf: 'center' }}>Takt:</span>
+            <button onClick={() => setComposerTimeSig('2/4')} style={btnStyle(composerTimeSig === '2/4')}>2/4</button>
+            <button onClick={() => setComposerTimeSig('3/4')} style={btnStyle(composerTimeSig === '3/4')}>3/4</button>
+            <button onClick={() => setComposerTimeSig('4/4')} style={btnStyle(composerTimeSig === '4/4')}>4/4</button>
+          </div>
+            
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px', flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 'bold', alignSelf: 'center' }}>Trajanje:</span>
             <button onClick={() => setComposerDuration('h')} style={btnStyle(composerDuration === 'h')}>Polovina (h)</button>
@@ -746,8 +766,8 @@ export default function ClefApp() {
         {mode === 'quiz' && currentNote && (
           <VexStaff clef={clef} elements={[{ type: 'note', name: currentNote.name, duration: 'q' }]} width={150} highlightIndex={-1} />
         )}
-        {(mode === 'melody' || mode === 'composer') && (
-          <VexStaff clef={clef} elements={currentMelody} width={700} highlightIndex={metronomeOn ? currentBeatIdx : -1} />
+{(mode === 'melody' || mode === 'composer') && (
+          <VexStaff clef={clef} elements={currentMelody} width={700} highlightIndex={metronomeOn ? currentBeatIdx : -1} timeSignature={mode === 'composer' ? composerTimeSig : activeMelodyType === 'custom' ? (selectedCustomMelody?.timeSignature || '2/4') : activeMelodyType} />
         )}
       </div>
 
