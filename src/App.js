@@ -489,6 +489,14 @@ const timePoints = useMemo(() => {
 
   const formatTime = (s) => `${Math.floor(s/60).toString().padStart(2,'0')}:${(s%60).toString().padStart(2,'0')}`;
 
+  // Automatsko čišćenje rezultata i gašenje alata pri promeni ekrana
+  useEffect(() => {
+    setParlatoResults(null); // Sklanja onaj prozor sa procentima
+    setParlatoActive(false); // Gasi snimanje tapšanja ako je ostalo upaljeno
+    setMetronomeOn(false);   // Gasi metronom da ne kuca u kvizu
+    setTapTimes([]);         // Prazni niz sa udarcima
+  }, [mode, clef, activeMelodyType, melodyIndex]);
+
   return (
     <div style={{ maxWidth: '750px', margin: '20px auto', padding: '15px', fontFamily: 'sans-serif', textAlign: 'center', backgroundColor: '#f9f9f9', borderRadius: '15px', boxShadow: '0 5px 15px rgba(0,0,0,0.1)' }}>
       <h2>🎵 Solfeđo Master 🎵</h2>
