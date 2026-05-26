@@ -199,9 +199,13 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
         currentMeasureNotesForBeams.push(staveElement);
       } else if (el.type === 'rest') {
         const vfRest = restDurationMap[el.duration] || 'qr';
+        
+        // NOVO: Određujemo tačan centar linijskog sistema u zavisnosti od ključa
+        const restPosition = clef === 'bass' ? 'd/3' : 'b/4';
+        
         staveElement = new VF.StaveNote({
           clef: clef === 'bass' ? 'bass' : 'treble',
-          keys: ['b/4'],         
+          keys: [restPosition],  // Pauza sada gađa tačno srednju liniju
           duration: vfRest
         });
       }
