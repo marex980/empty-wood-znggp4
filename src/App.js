@@ -128,7 +128,7 @@ const playClick = (isStrong) => {
 };
 
 // ==========================================
-// 3. VEXFLOW RENDERER
+// 3. VEXFLOW RENDERER (BLINDIRANO)
 // ==========================================
 const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignature }) => {
   const containerRef = useRef(null);
@@ -152,18 +152,23 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignat
     const allBeams = [];
     let globalIdx = 0;
 
-    elements.forEach(el => {
+    // Zaštita: Ako su elementi prazni ili nedefinisani, prestani ovde
+    const safeElements = elements || [];
+
+    safeElements.forEach(el => {
+      if (!el) return; // Preskoči ako je podatak oštećen
+
       if (el.type === 'barline') {
         allTickables.push(new VF.BarNote(VF.Barline.type.SINGLE));
         if (currentMeasureNotesForBeams.length > 0) {
-          allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
+          try { allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams)); } catch(e) { console.warn("Beam error", e); }
           currentMeasureNotesForBeams = [];
         }
         return;
       } else if (el.type === 'doublebar') {
         allTickables.push(new VF.BarNote(VF.Barline.type.DOUBLE));
         if (currentMeasureNotesForBeams.length > 0) {
-          allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
+          try { allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams)); } catch(e) { console.warn("Beam error", e); }
           currentMeasureNotesForBeams = [];
         }
         return;
@@ -174,28 +179,22 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignat
         const noteObj = clef === 'bass'
           ? BASS_NOTES.find(n => n.name === el.name)
           : TREBLE_NOTES.find(n => n.name === el.name);
-        if (!noteObj) return;
-
-        const vfDuration = durationMap[el.duration] || 'q';
-        staveElement = new VF.StaveNote({
-          clef: clef === 'bass' ? 'bass' : 'treble',
-          keys: [noteObj.vexKey],
-          duration: vfDuration
-        });
-
-        if (el.duration.includes('.')) staveElement.addModifier(new VF.Dot(), 0);
         
-        if (el.accidental) {
-          staveElement.addModifier(new VF.Accidental(el.accidental), 0);
-        }
+        if (noteObj) {
+          const vfDuration = durationMap[el.duration] || 'q';
+          staveElement = new VF.StaveNote({
+            clef: clef === 'bass' ? 'bass' : 'treble',
+            keys: [noteObj.vexKey],
+            duration: vfDuration
+          });
 
-        if (el.articulation === 'staccato') {
-          staveElement.addModifier(new VF.Articulation('a.').setPosition(3), 0);
-        } else if (el.articulation === 'accent') {
-          staveElement.addModifier(new VF.Articulation('a>').setPosition(3), 0);
-        }
+          if (el.duration && el.duration.includes('.')) staveElement.addModifier(new VF.Dot(), 0);
+          if (el.accidental) staveElement.addModifier(new VF.Accidental(el.accidental), 0);
+          if (el.articulation === 'staccato') staveElement.addModifier(new VF.Articulation('a.').setPosition(3), 0);
+          else if (el.articulation === 'accent') staveElement.addModifier(new VF.Articulation('a>').setPosition(3), 0);
 
-        currentMeasureNotesForBeams.push(staveElement);
+          currentMeasureNotesForBeams.push(staveElement);
+        }
       } else if (el.type === 'rest') {
         const vfRest = restDurationMap[el.duration] || 'qr';
         const restPosition = clef === 'bass' ? 'd/3' : 'b/4';
@@ -206,16 +205,18 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignat
         });
       }
 
-      if (highlightIndex === globalIdx && staveElement) {
-        staveElement.setStyle({ fillStyle: '#E53935', strokeStyle: '#E53935' });
+      // Dodajemo notu na ekran samo ako je uspešno napravljena
+      if (staveElement) {
+        if (highlightIndex === globalIdx) {
+          staveElement.setStyle({ fillStyle: '#E53935', strokeStyle: '#E53935' });
+        }
+        allTickables.push(staveElement);
+        globalIdx++;
       }
-
-      allTickables.push(staveElement);
-      globalIdx++;
     });
 
     if (currentMeasureNotesForBeams.length > 0) {
-      allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
+      try { allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams)); } catch(e) { console.warn("Beam error", e); }
     }
 
     if (allTickables.length === 0) return;
@@ -228,7 +229,7 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignat
     voice.draw(context, stave);
     allBeams.forEach(beam => beam.setContext(context).draw());
 
-  }, [elements, clef, width, highlightIndex]);
+  }, [elements, clef, width, highlightIndex, timeSignature]);
 
   return <div ref={containerRef} />;
 });
@@ -269,7 +270,6 @@ export default function ClefApp() {
   const [composerTimeSig, setComposerTimeSig] = useState('2/4');
   const [isSaving, setIsSaving] = useState(false);
 
-  // Novi state za melodije iz baze
   const [firebaseMelodies, setFirebaseMelodies] = useState([]);
   const [selectedCustomMelody, setSelectedCustomMelody] = useState(null);
   const [editingMelodyId, setEditingMelodyId] = useState(null);
@@ -280,7 +280,6 @@ export default function ClefApp() {
   const activeNotesDb = useMemo(() => clef === 'bass' ? BASS_NOTES : TREBLE_NOTES, [clef]);
   const noteMap = useMemo(() => new Map(activeNotesDb.map(n => [n.name, n])), [activeNotesDb]);
 
-  // Učitavanje iz baze
   const fetchMelodies = async () => {
     try {
       const querySnapshot = await getDocs(collection(db, "melodies"));
@@ -298,12 +297,12 @@ export default function ClefApp() {
     fetchMelodies();
   }, []);
 
+  // BLINDIRANO: Sprečava pucanje ako iz baze stigne prazan dokument
   const currentMelody = useMemo(() => {
-    if (mode === 'composer') return composerNotes;
+    if (mode === 'composer') return composerNotes || [];
     
-    // Ako smo izabrali melodiju iz Firebase-a
     if (activeMelodyType === 'custom' && selectedCustomMelody) {
-      return selectedCustomMelody.notes;
+      return selectedCustomMelody.notes || []; // Ključna ispravka za Beli ekran!
     }
 
     const list = MELODIES_RHYTHMIC[clef]?.[activeMelodyType];
@@ -316,12 +315,16 @@ export default function ClefApp() {
 
   const beatDurationMs = 60000 / bpm;
 
+  // BLINDIRANO: Proverava svaki element pre obrade
   const timePoints = useMemo(() => {
     const points = [];
     let currentTime = 0;
     let noteIndex = 0;
+    
+    const safeMelody = currentMelody || [];
 
-    currentMelody.forEach((el) => {
+    safeMelody.forEach((el) => {
+      if (!el) return;
       if (el.type === 'barline' || el.type === 'doublebar') return;
       
       const durStr = el.duration || 'q';
@@ -378,12 +381,10 @@ export default function ClefApp() {
         setCurrentBeatIdx(-1);
       }
 
-// Logika za pametni klik metronoma na osnovu takta
       const currentBeat = Math.floor(now / beatDurationMs);
       if (currentBeat !== lastBeatNumber) {
         lastBeatNumber = currentBeat;
         
-        // Čitanje prvog broja iz takta (npr. '3' iz '3/4')
         const activeSig = (mode === 'composer') ? composerTimeSig : (activeMelodyType === 'custom' ? (selectedCustomMelody?.timeSignature || '2/4') : activeMelodyType);
         const beatsPerMeasure = parseInt(activeSig.split('/')[0]) || 4;
         
@@ -392,7 +393,7 @@ export default function ClefApp() {
       }
     }, 30);
     return () => clearInterval(interval);
-  }, [mode, metronomeOn, timePoints, beatDurationMs]);
+  }, [mode, metronomeOn, timePoints, beatDurationMs, composerTimeSig, activeMelodyType, selectedCustomMelody]);
 
   useEffect(() => {
     setParlatoResults(null);
@@ -518,7 +519,6 @@ export default function ClefApp() {
     }
   };
 
-  // Kompozitor akcije
   const addComposerNote = (noteName) => {
     const noteObj = noteMap.get(noteName);
     if (noteObj) playTone(noteObj.freq);
@@ -549,14 +549,13 @@ export default function ClefApp() {
   };
 
   const saveMelodyToFirebase = async () => {
-    if (composerNotes.length === 0) {
+    if (!composerNotes || composerNotes.length === 0) {
       alert("Melodija je prazna!");
       return;
     }
     setIsSaving(true);
     try {
       if (editingMelodyId) {
-        // Ažuriranje postojeće
         const melodyRef = doc(db, "melodies", editingMelodyId);
         await updateDoc(melodyRef, {
           title: composerTitle,
@@ -566,7 +565,6 @@ export default function ClefApp() {
         });
         alert("Melodija je uspešno ažurirana! ☁️");
       } else {
-        // Kreiranje nove
         await addDoc(collection(db, "melodies"), {
           title: composerTitle,
           clef: clef,
@@ -580,7 +578,7 @@ export default function ClefApp() {
       setComposerNotes([]);
       setComposerTitle('Moja nova kompozicija');
       setEditingMelodyId(null);
-      fetchMelodies(); // Osvežava listu kako bi se nova melodija odmah pojavila!
+      fetchMelodies(); 
       
     } catch (e) {
       console.error("Greška pri čuvanju:", e);
@@ -748,7 +746,6 @@ export default function ClefApp() {
             <button onClick={addComposerRest} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#607D8B', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>𝄽 Pauza</button>
             <button onClick={addComposerBarline} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>| Takt</button>
             
-            {/* NOVO DUGME ZA KRAJ MELODIJE */}
             <button onClick={addComposerDoubleBarline} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#111', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>|| Kraj</button>
           </div>
 
@@ -766,7 +763,7 @@ export default function ClefApp() {
         {mode === 'quiz' && currentNote && (
           <VexStaff clef={clef} elements={[{ type: 'note', name: currentNote.name, duration: 'q' }]} width={150} highlightIndex={-1} />
         )}
-{(mode === 'melody' || mode === 'composer') && (
+        {(mode === 'melody' || mode === 'composer') && (
           <VexStaff clef={clef} elements={currentMelody} width={700} highlightIndex={metronomeOn ? currentBeatIdx : -1} timeSignature={mode === 'composer' ? composerTimeSig : activeMelodyType === 'custom' ? (selectedCustomMelody?.timeSignature || '2/4') : activeMelodyType} />
         )}
       </div>
