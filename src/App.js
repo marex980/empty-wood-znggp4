@@ -604,7 +604,7 @@ export default function ClefApp() {
           <span style={{ fontWeight: 'bold' }}>Artikulacija:</span>
           <button onClick={() => setComposerArtic('')} style={btnStyle(composerArtic === '')}>Bez</button>
           <button onClick={() => setComposerArtic('staccato')} style={btnStyle(composerArtic === 'staccato')}>Stakato (•)</button>
-          <button onClick={() => setComposerArtic('accent')} style={btnStyle(composerArtic === 'accent')}>Akcenat (>)</button>
+          <button onClick={() => setComposerArtic('accent')} style={btnStyle(composerArtic === 'accent')}>Akcenat {'>'}</button>
         </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' }}>
