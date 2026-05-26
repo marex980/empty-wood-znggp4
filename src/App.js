@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Vex from 'vexflow';
 import { collection, addDoc } from 'firebase/firestore';
-import { db } from './firebase'; // Tvoja Firebase konekcija
+import { db } from './firebase'; 
 
 const VF = Vex.Flow;
 
@@ -182,12 +182,17 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
           duration: vfDuration
         });
 
-        if (el.duration.includes('.')) staveElement.addModifier(new VF.Dot(), 0);
+        // Punktirani ritam (tačka pored note)
+        if (el.duration.includes('.')) {
+          staveElement.addModifier(new VF.Dot(), 0);
+        }
         
-        // NOVO: Podrška za povisilice i snizilice
+        // Podrška za povisilice i snizilice
         if (el.accidental) {
           staveElement.addModifier(new VF.Accidental(el.accidental), 0);
         }
+
+        // Podrška za artikulaciju (Stakato iznad, Akcenat iznad)
         if (el.articulation === 'staccato') {
           staveElement.addModifier(new VF.Articulation('a.').setPosition(3), 0);
         } else if (el.articulation === 'accent') {
@@ -237,7 +242,7 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
 // ==========================================
 export default function ClefApp() {
   const [clef, setClef] = useState('bass');
-  const [mode, setMode] = useState('learn'); // 'learn', 'quiz', 'melody', 'composer'
+  const [mode, setMode] = useState('learn');
 
   const [currentNote, setCurrentNote] = useState(null);
   const [correctCount, setCorrectCount] = useState(0);
@@ -262,9 +267,9 @@ export default function ClefApp() {
   // KOMPOZITOR STATE
   const [composerNotes, setComposerNotes] = useState([]);
   const [composerTitle, setComposerTitle] = useState('Moja prva kompozicija');
-  const [composerDuration, setComposerDuration] = useState('q'); // Trenutno izabrano trajanje
-  const [composerAccidental, setComposerAccidental] = useState(''); // '' | '#' | 'b' | 'n'
-  const [composerArtic, setComposerArtic] = useState('');
+  const [composerDuration, setComposerDuration] = useState('q');
+  const [composerAccidental, setComposerAccidental] = useState('');
+  const [composerArtic, setComposerArtic] = useState(''); // Artikulacija
   const [isSaving, setIsSaving] = useState(false);
 
   const timeoutRef = useRef(null);
@@ -357,7 +362,6 @@ export default function ClefApp() {
     return () => clearInterval(interval);
   }, [mode, metronomeOn, timePoints, beatDurationMs]);
 
-  // Čišćenje prilikom prelaska na druge modove
   useEffect(() => {
     setParlatoResults(null);
     setParlatoActive(false);
@@ -486,7 +490,15 @@ export default function ClefApp() {
   const addComposerNote = (noteName) => {
     const noteObj = noteMap.get(noteName);
     if (noteObj) playTone(noteObj.freq);
-    setComposerNotes(prev => [...prev, { type: 'note', name: noteName, duration: composerDuration, accidental: composerAccidental }]);
+    
+    // OVO JE ISPRAVLJENO: Sada beleži i artikulaciju!
+    setComposerNotes(prev => [...prev, { 
+      type: 'note', 
+      name: noteName, 
+      duration: composerDuration, 
+      accidental: composerAccidental,
+      articulation: composerArtic
+    }]);
   };
 
   const addComposerRest = () => {
@@ -501,7 +513,6 @@ export default function ClefApp() {
     setComposerNotes(prev => prev.slice(0, -1));
   };
 
-  // Slanje u Firebase
   const saveMelodyToFirebase = async () => {
     if (composerNotes.length === 0) {
       alert("Melodija je prazna!");
