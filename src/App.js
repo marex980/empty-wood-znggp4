@@ -508,13 +508,24 @@ const timePoints = useMemo(() => {
         </div>
       )}
 
-      {mode === 'melody' && (
+{mode === 'melody' && (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '15px', margin: '10px 0' }}>
+          
+          {/* VRAĆEN RED: Dugmići za izbor takta i nove melodije */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button onClick={() => { setActiveMelodyType('2/4'); setMetronomeOn(false); setMelodyIndex(0); }} style={{ padding: '8px 15px', backgroundColor: activeMelodyType === '2/4' ? '#333' : '#eee', color: activeMelodyType === '2/4' ? '#fff' : '#333', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>2/4 Takt</button>
+            <button onClick={() => { setActiveMelodyType('3/4'); setMetronomeOn(false); setMelodyIndex(0); }} style={{ padding: '8px 15px', backgroundColor: activeMelodyType === '3/4' ? '#333' : '#eee', color: activeMelodyType === '3/4' ? '#fff' : '#333', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>3/4 Takt</button>
+            <button onClick={() => { setMetronomeOn(false); setMelodyIndex(prev => prev + 1); }} style={{ padding: '8px 15px', backgroundColor: '#9C27B0', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>🎲 Nova melodija</button>
+          </div>
+
+          {/* RED SA BPM SLAJDEROM */}
           <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <label>BPM: {bpm}</label>
+            <label style={{ fontWeight: 'bold' }}>BPM: {bpm}</label>
             <input type="range" min="40" max="120" value={bpm} onChange={e => setBpm(Number(e.target.value))} />
           </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
+
+          {/* RED SA PARLATO I METRONOM DUGMIĆIMA */}
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center' }}>
             <button onClick={() => setMetronomeOn(!metronomeOn)} style={{ padding: '10px 25px', backgroundColor: metronomeOn ? '#E53935' : '#4CAF50', color: 'white', border: 'none', borderRadius: '25px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 4px 6px rgba(0,0,0,0.1)' }}>
               {metronomeOn ? '⏹ Zaustavi Metronom' : '▶ Slušaj Ritam'}
             </button>
@@ -522,6 +533,7 @@ const timePoints = useMemo(() => {
               🖐️ Parlato Trener {parlatoActive ? '(Završi)' : ''}
             </button>
           </div>
+
         </div>
       )}
 
