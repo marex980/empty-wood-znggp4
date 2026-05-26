@@ -162,14 +162,14 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex }) => {
     elements.forEach(el => {
       // 1. Dodavanje pregrada za taktove DIREKTNO u isti niz
       if (el.type === 'barline') {
-        allTickables.push(new VF.BarNote(VF.Barline.type.SINGLE));
+        allTickables.push(new VF.BarNote(VF.BarlineType.SINGLE));
         if (currentMeasureNotesForBeams.length > 0) {
           allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
           currentMeasureNotesForBeams = [];
         }
         return;
       } else if (el.type === 'doublebar') {
-        allTickables.push(new VF.BarNote(VF.Barline.type.DOUBLE));
+        allTickables.push(new VF.BarNote(VF.BarlineType.DOUBLE));
         if (currentMeasureNotesForBeams.length > 0) {
           allBeams.push(...VF.Beam.generateBeams(currentMeasureNotesForBeams));
           currentMeasureNotesForBeams = [];
