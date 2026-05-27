@@ -6,31 +6,39 @@ import { db } from './firebase';
 const VF = Vex.Flow;
 
 // ==========================================
-// 1. MUSIC DATA
+// 1. MUSIC DATA (PROŠIREN OPSEG)
 // ==========================================
 
 const BASS_NOTES = [
+  { id: -1, name: '↑DO', position: -2, freq: 261.63, vexKey: 'c/4', ledger: true },
   { id: 0, name: 'SI', position: -1, freq: 246.94, vexKey: 'b/3' },
   { id: 1, name: 'LA', position: 0, freq: 220.00, vexKey: 'a/3' },
   { id: 2, name: 'SOL', position: 1, freq: 196.00, vexKey: 'g/3' },
   { id: 3, name: 'FA', position: 2, freq: 174.61, vexKey: 'f/3' },
   { id: 4, name: 'MI', position: 3, freq: 164.81, vexKey: 'e/3' },
   { id: 5, name: 'RE', position: 4, freq: 146.83, vexKey: 'd/3' },
-  { id: 6, name: 'DO', position: 5, freq: 130.81, vexKey: 'c/3' }
+  { id: 6, name: 'DO', position: 5, freq: 130.81, vexKey: 'c/3' },
+  { id: 7, name: '↓SI', position: 6, freq: 123.47, vexKey: 'b/2' },
+  { id: 8, name: '↓LA', position: 7, freq: 110.00, vexKey: 'a/2' },
+  { id: 9, name: '↓SOL', position: 8, freq: 98.00, vexKey: 'g/2' },
+  { id: 10, name: '↓FA', position: 9, freq: 87.31, vexKey: 'f/2' },
+  { id: 11, name: '↓MI', position: 10, freq: 82.41, vexKey: 'e/2', ledger: true }
 ];
 
 const TREBLE_NOTES = [
-  { id: 10, name: 'DO', position: 3, freq: 523.25, vexKey: 'c/5' },
+  { id: 8, name: '↑MI', position: 1, freq: 659.25, vexKey: 'e/5' },
+  { id: 9, name: '↑RE', position: 2, freq: 587.33, vexKey: 'd/5' },
+  { id: 10, name: '↑DO', position: 3, freq: 523.25, vexKey: 'c/5' },
   { id: 11, name: 'SI', position: 4, freq: 493.88, vexKey: 'b/4' },
   { id: 12, name: 'LA', position: 5, freq: 440.00, vexKey: 'a/4' },
   { id: 13, name: 'SOL', position: 6, freq: 392.00, vexKey: 'g/4' },
   { id: 14, name: 'FA', position: 7, freq: 349.23, vexKey: 'f/4' },
   { id: 15, name: 'MI', position: 8, freq: 329.63, vexKey: 'e/4' },
   { id: 16, name: 'RE', position: 9, freq: 293.66, vexKey: 'd/4' },
-  { id: 17, name: 'DO', position: 10, freq: 261.63, vexKey: 'c/4', ledger: true }
+  { id: 17, name: 'DO', position: 10, freq: 261.63, vexKey: 'c/4', ledger: true },
+  { id: 18, name: '↓SI', position: 11, freq: 246.94, vexKey: 'b/3', ledger: true },
+  { id: 19, name: '↓LA', position: 12, freq: 220.00, vexKey: 'a/3', ledger: true }
 ];
-
-const SOLFEGIO = ['DO', 'RE', 'MI', 'FA', 'SOL', 'LA', 'SI'];
 
 const durationMap = {
   'q': 'q',
@@ -128,7 +136,7 @@ const playClick = (isStrong) => {
 };
 
 // ==========================================
-// 3. VEXFLOW RENDERER (BLINDIRANO)
+// 3. VEXFLOW RENDERER
 // ==========================================
 const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignature }) => {
   const containerRef = useRef(null);
@@ -152,11 +160,10 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignat
     const allBeams = [];
     let globalIdx = 0;
 
-    // Zaštita: Ako su elementi prazni ili nedefinisani, prestani ovde
     const safeElements = elements || [];
 
     safeElements.forEach(el => {
-      if (!el) return; // Preskoči ako je podatak oštećen
+      if (!el) return;
 
       if (el.type === 'barline') {
         allTickables.push(new VF.BarNote(VF.Barline.type.SINGLE));
@@ -205,7 +212,6 @@ const VexStaff = React.memo(({ clef, elements, width, highlightIndex, timeSignat
         });
       }
 
-      // Dodajemo notu na ekran samo ako je uspešno napravljena
       if (staveElement) {
         if (highlightIndex === globalIdx) {
           staveElement.setStyle({ fillStyle: '#E53935', strokeStyle: '#E53935' });
@@ -261,7 +267,6 @@ export default function ClefApp() {
   const [bpm, setBpm] = useState(60);
   const [activeLearnNote, setActiveLearnNote] = useState(null);
 
-  // KOMPOZITOR & FIREBASE STATE
   const [composerNotes, setComposerNotes] = useState([]);
   const [composerTitle, setComposerTitle] = useState('Moja nova kompozicija');
   const [composerDuration, setComposerDuration] = useState('q');
@@ -297,25 +302,19 @@ export default function ClefApp() {
     fetchMelodies();
   }, []);
 
-  // BLINDIRANO: Sprečava pucanje ako iz baze stigne prazan dokument
   const currentMelody = useMemo(() => {
     if (mode === 'composer') return composerNotes || [];
     
     if (activeMelodyType === 'custom' && selectedCustomMelody) {
-      return selectedCustomMelody.notes || []; // Ključna ispravka za Beli ekran!
+      return selectedCustomMelody.notes || [];
     }
 
     const list = MELODIES_RHYTHMIC[clef]?.[activeMelodyType];
     return list && list.length > 0 ? list[melodyIndex % list.length] : SCALE_RHYTHMIC;
   }, [clef, activeMelodyType, melodyIndex, mode, composerNotes, selectedCustomMelody]);
 
-  const learningNotes = useMemo(() => {
-    return SCALE_RHYTHMIC.filter(el => el.type === 'note').map(el => ({ name: el.name, freq: noteMap.get(el.name)?.freq }));
-  }, [noteMap]);
-
   const beatDurationMs = 60000 / bpm;
 
-  // BLINDIRANO: Proverava svaki element pre obrade
   const timePoints = useMemo(() => {
     const points = [];
     let currentTime = 0;
@@ -628,7 +627,6 @@ export default function ClefApp() {
             <button onClick={() => { setMetronomeOn(false); setMelodyIndex(prev => prev + 1); }} style={{ padding: '8px 15px', backgroundColor: '#9C27B0', color: 'white', border: 'none', borderRadius: '5px', cursor: 'pointer', fontWeight: 'bold' }}>🎲 Nova melodija</button>
           </div>
 
-          {/* MENI ZA TVOJE MELODIJE IZ BAZE */}
           {firebaseMelodies.length > 0 && (
             <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', justifyContent: 'center', marginTop: '5px', padding: '10px', backgroundColor: '#e3f2fd', borderRadius: '8px' }}>
               <span style={{ fontWeight: 'bold', alignSelf: 'center', color: '#1565c0' }}>Izaberi iz baze:</span>
@@ -671,11 +669,9 @@ export default function ClefApp() {
         </div>
       )}
 
-      {/* INTERFEJS ZA KOMPOZITORA */}
       {mode === 'composer' && (
         <div style={{ backgroundColor: '#fff', padding: '15px', borderRadius: '10px', border: '2px solid #E91E63', marginBottom: '15px' }}>
           
-          {/* UČITAVANJE ZA IZMENU */}
           {firebaseMelodies.length > 0 && (
             <div style={{ marginBottom: '15px', padding: '10px', backgroundColor: '#fce4ec', borderRadius: '8px' }}>
               <select 
@@ -707,7 +703,6 @@ export default function ClefApp() {
 
           <input type="text" value={composerTitle} onChange={e => setComposerTitle(e.target.value)} style={{ width: '80%', padding: '10px', fontSize: '18px', fontWeight: 'bold', textAlign: 'center', marginBottom: '15px', borderRadius: '8px', border: '1px solid #ccc' }} placeholder="Unesi naziv kompozicije..." />
 
-          {/* DUGMIĆI ZA TAKT */}
           <div style={{ display: 'flex', justifyContent: 'center', gap: '10px', marginBottom: '10px' }}>
             <span style={{ fontWeight: 'bold', alignSelf: 'center' }}>Takt:</span>
             <button onClick={() => setComposerTimeSig('2/4')} style={btnStyle(composerTimeSig === '2/4')}>2/4</button>
@@ -740,12 +735,13 @@ export default function ClefApp() {
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', gap: '5px', flexWrap: 'wrap', marginBottom: '15px' }}>
-            {SOLFEGIO.map(solf => (
-              <button key={solf} onClick={() => addComposerNote(solf)} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#007BFF', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>{solf}</button>
+            {[...activeNotesDb].reverse().map(note => (
+              <button key={`comp-${note.id}`} onClick={() => addComposerNote(note.name)} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#007BFF', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>
+                {note.name}
+              </button>
             ))}
             <button onClick={addComposerRest} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#607D8B', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>𝄽 Pauza</button>
             <button onClick={addComposerBarline} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#333', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>| Takt</button>
-            
             <button onClick={addComposerDoubleBarline} style={{ padding: '10px', fontSize: '16px', fontWeight: 'bold', backgroundColor: '#111', color: '#fff', border: 'none', borderRadius: '5px', cursor: 'pointer' }}>|| Kraj</button>
           </div>
 
@@ -772,9 +768,9 @@ export default function ClefApp() {
         <div style={{ marginTop: '15px' }}>
           <p style={{ marginBottom: '10px', fontWeight: 'bold' }}>Klikni na ime note da čuješ ton:</p>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            {learningNotes.map(note => (
+            {[...activeNotesDb].reverse().map(note => (
               <button
-                key={note.name}
+                key={`learn-${note.id}`}
                 onClick={() => handleLearnClick(note)}
                 style={{
                   padding: '12px 20px', fontSize: '18px', fontWeight: 'bold', color: '#fff',
@@ -796,10 +792,10 @@ export default function ClefApp() {
             {feedback.show ? feedback.text : 'Koja je ovo nota? (Klikni dugme)'}
           </div>
           <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '8px' }}>
-            {SOLFEGIO.map(solf => (
-              <button key={solf} onClick={() => handleGuess(solf)} disabled={feedback.isCorrect}
-                style={{ padding: '12px 10px', fontSize: '16px', fontWeight: 'bold', color: 'white', border: 'none', borderRadius: '8px', flex: '1 1 calc(30% - 10px)', minWidth: '70px', backgroundColor: feedback.isCorrect ? '#ccc' : '#007BFF', cursor: feedback.isCorrect ? 'not-allowed' : 'pointer' }}>
-                {solf}
+            {[...activeNotesDb].reverse().map(note => (
+              <button key={`quiz-${note.id}`} onClick={() => handleGuess(note.name)} disabled={feedback.isCorrect}
+                style={{ padding: '12px 10px', fontSize: '16px', fontWeight: 'bold', color: 'white', border: 'none', borderRadius: '8px', flex: '1 1 calc(20% - 10px)', minWidth: '60px', backgroundColor: feedback.isCorrect ? '#ccc' : '#007BFF', cursor: feedback.isCorrect ? 'not-allowed' : 'pointer' }}>
+                {note.name}
               </button>
             ))}
           </div>
